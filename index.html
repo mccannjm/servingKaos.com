@@ -3,66 +3,412 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ServingKaos</title>
+    <title>Zeus — See the Shape of Your Thinking</title>
+    <meta name="description" content="Zeus decomposes human thinking into visible ring structures. Type brackets. See the constellation. The instrument learns you.">
+    <meta property="og:title" content="Zeus — See the Shape of Your Thinking">
+    <meta property="og:description" content="A writing instrument that makes the invisible structure of thought visible. Three primitives. Runs locally. No cloud required.">
+    <meta property="og:type" content="website">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080816;
+            --bg-subtle: #0a0a1a;
+            --text: #888;
+            --text-dim: #444;
+            --text-whisper: #2a2a3a;
+            --gold: #ffd700;
+            --teal: #4ecdc4;
+            --blue: #5b8def;
+            --pink: #e07bda;
+            --green: #a0dca0;
+            --red: #ff6b6b;
+        }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: #ffffff;
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            overflow-x: hidden;
         }
 
-        .container {
+        /* ── Canvas: star field ── */
+        #stars {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 80px 24px 120px;
+        }
+
+        /* ── Hero ── */
+        .hero {
             text-align: center;
-            padding: 2rem;
+            margin-bottom: 100px;
         }
 
-        h1 {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            background: linear-gradient(45deg, #646cff, #42d392);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        .hero h1 {
+            font-size: 3.2em;
+            font-weight: 200;
+            letter-spacing: 0.15em;
+            color: #ccc;
+            margin-bottom: 24px;
         }
 
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-            margin: 1rem 0;
-            max-width: 600px;
-            color: #e0e0e0;
+        .hero h1 span {
+            font-weight: 400;
         }
 
-        .social-links {
-            margin-top: 2rem;
+        .hero .tagline {
+            font-size: 1.1em;
+            color: var(--text-dim);
+            font-weight: 300;
+            line-height: 1.8;
         }
 
-        .social-links a {
-            color: #646cff;
+        .hero .elevator {
+            margin-top: 40px;
+            font-size: 1.2em;
+            color: var(--teal);
+            font-style: italic;
+            opacity: 0.7;
+        }
+
+        /* ── Sections ── */
+        section {
+            margin-bottom: 80px;
+        }
+
+        section h2 {
+            font-size: 0.75em;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+        }
+
+        section p {
+            margin-bottom: 16px;
+            font-size: 0.95em;
+        }
+
+        /* ── Ring showcase ── */
+        .rings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 24px;
+        }
+
+        .ring-card {
+            padding: 20px;
+            border-radius: 12px;
+            background: var(--bg-subtle);
+            border: 1px solid #ffffff06;
+            transition: border-color 0.3s;
+        }
+
+        .ring-card:hover {
+            border-color: #ffffff10;
+        }
+
+        .ring-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .ring-card .bracket {
+            font-size: 0.85em;
+            opacity: 0.4;
+            margin-top: 8px;
+        }
+
+        .ring-card .meaning {
+            font-size: 0.85em;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        .ring-intent .ring-dot { color: var(--gold); background: var(--gold); }
+        .ring-reality .ring-dot { color: var(--teal); background: var(--teal); }
+        .ring-gap .ring-dot { color: var(--blue); background: var(--blue); }
+        .ring-cross .ring-dot { color: var(--pink); background: var(--pink); }
+        .ring-aether .ring-dot { color: var(--green); background: var(--green); }
+        .ring-pin .ring-dot { color: var(--red); background: var(--red); }
+
+        .ring-intent { color: var(--gold); }
+        .ring-reality { color: var(--teal); }
+        .ring-gap { color: var(--blue); }
+        .ring-cross { color: var(--pink); }
+        .ring-aether { color: var(--green); }
+        .ring-pin { color: var(--red); }
+
+        /* ── Kernel ── */
+        .kernel {
+            display: flex;
+            gap: 32px;
+            margin-top: 24px;
+        }
+
+        .kernel-item {
+            flex: 1;
+            padding: 20px;
+            border-left: 2px solid var(--text-whisper);
+        }
+
+        .kernel-item .label {
+            font-size: 0.75em;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+
+        .kernel-item .desc {
+            font-size: 0.85em;
+            opacity: 0.6;
+        }
+
+        /* ── Demo block ── */
+        .demo {
+            background: var(--bg-subtle);
+            border: 1px solid #ffffff06;
+            border-radius: 12px;
+            padding: 28px;
+            margin-top: 24px;
+            line-height: 2.0;
+        }
+
+        .demo .gold { color: var(--gold); }
+        .demo .teal { color: var(--teal); }
+        .demo .blue { color: var(--blue); }
+        .demo .pink { color: var(--pink); }
+        .demo .green { color: var(--green); }
+        .demo .red { color: var(--red); font-weight: 600; }
+        .demo .plain { color: var(--text-dim); }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            padding: 60px 0 40px;
+            border-top: 1px solid #ffffff06;
+        }
+
+        .footer .pin {
+            color: var(--red);
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .footer .whisper {
+            margin-top: 16px;
+            font-size: 0.8em;
+            color: var(--text-whisper);
+            font-style: italic;
+        }
+
+        .footer a {
+            color: var(--teal);
             text-decoration: none;
-            margin: 0 1rem;
-            transition: color 0.3s ease;
+            opacity: 0.6;
+            transition: opacity 0.2s;
         }
 
-        .social-links a:hover {
-            color: #42d392;
+        .footer a:hover { opacity: 1; }
+
+        /* ── Breathing animation ── */
+        @keyframes breathe {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.02); }
+        }
+
+        .breathe {
+            animation: breathe 4s ease-in-out infinite;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .content { padding: 40px 16px 80px; }
+            .hero h1 { font-size: 2em; }
+            .kernel { flex-direction: column; gap: 16px; }
+            .rings { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>ServingKaos</h1>
-        <p>poop.</p>
-        <div class="social-links">
-            <a href="https://bsky.app/profile/servingkaos.com" target="_blank">Bluesky</a>
+    <canvas id="stars"></canvas>
+
+    <div class="content">
+        <!-- Hero -->
+        <div class="hero">
+            <h1><span>Zeus</span></h1>
+            <p class="tagline">See the shape of your thinking.</p>
+            <p class="elevator">"Point it at anything and it shows you Intent, Reality, and Gap."</p>
+        </div>
+
+        <!-- What it is -->
+        <section>
+            <h2 style="color: var(--teal);">What Zeus Is</h2>
+            <p>Zeus is a writing instrument. You type with brackets. The brackets classify your thinking into rings. A constellation renders the shape of what you're working through — live, as you write.</p>
+            <p>It runs on your Mac. Metal GPU. No cloud. No account. No data leaves your machine.</p>
+            <p style="color: var(--text-dim);">The instrument learns you. Not through surveillance. Through the shape of your thinking over time.</p>
+        </section>
+
+        <!-- The Rings -->
+        <section>
+            <h2 style="color: var(--gold);">The Rings</h2>
+            <p>Six rings. Six colors. Every bracket you place classifies the thought inside it.</p>
+
+            <div class="rings">
+                <div class="ring-card ring-intent">
+                    <span class="ring-dot"></span>Intent
+                    <div class="bracket">* * &nbsp; {{ }}</div>
+                    <div class="meaning">What you want. What pulls you forward.</div>
+                </div>
+                <div class="ring-card ring-reality">
+                    <span class="ring-dot"></span>Reality
+                    <div class="bracket">{ } &nbsp; # #</div>
+                    <div class="meaning">What IS. The ground beneath your feet.</div>
+                </div>
+                <div class="ring-card ring-gap">
+                    <span class="ring-dot"></span>Gap
+                    <div class="bracket">[ ] &nbsp; ( )</div>
+                    <div class="meaning">What could be. Open threads. The unresolved.</div>
+                </div>
+                <div class="ring-card ring-cross">
+                    <span class="ring-dot"></span>Cross-Ring
+                    <div class="bracket">^ ^ &nbsp; | |</div>
+                    <div class="meaning">Stepping outside to observe yourself thinking.</div>
+                </div>
+                <div class="ring-card ring-aether">
+                    <span class="ring-dot"></span>Aether
+                    <div class="bracket">: :</div>
+                    <div class="meaning">The connective tissue. The space between ideas.</div>
+                </div>
+                <div class="ring-card ring-pin">
+                    <span class="ring-dot"></span>Pin
+                    <div class="bracket">vvNamevv</div>
+                    <div class="meaning">Anchors that never fade. What matters most.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Demo -->
+        <section>
+            <h2 style="color: var(--blue);">What It Looks Like</h2>
+            <p>You write like this. The rings appear in real time.</p>
+
+            <div class="demo breathe">
+                <span class="gold">*I want to understand why this keeps happening*</span><br>
+                <span class="teal">{The data shows a 40% drop every Tuesday}</span><br>
+                <span class="blue">[Maybe it's the deploy schedule? Or the cache invalidation?]</span><br>
+                <span class="pink">^I'm circling the same three hypotheses^</span><br>
+                <span class="green">:something connects the deploy timing to the cache:</span><br>
+                <span class="red">vvTuesdayDropvv</span>
+            </div>
+
+            <p style="margin-top: 20px; color: var(--text-dim);">Each line becomes a node. The constellation shows the shape — what's pulling you, what's grounded, what's still open. The instrument doesn't interpret. It reflects.</p>
+        </section>
+
+        <!-- The Kernel -->
+        <section>
+            <h2 style="color: var(--green);">The Kernel</h2>
+            <p>Three primitives. That's it. That runs anywhere.</p>
+
+            <div class="kernel">
+                <div class="kernel-item">
+                    <div class="label">Weighted Graph</div>
+                    <div class="desc">Nodes + edges + weight + decay. Things you return to get heavier. Things you abandon fade. Time has a vote.</div>
+                </div>
+                <div class="kernel-item">
+                    <div class="label">Ring Classifier</div>
+                    <div class="desc">Any input decomposes into Intent, Reality, and Gap. The brackets are the notation. The rings are the classification.</div>
+                </div>
+                <div class="kernel-item">
+                    <div class="label">Version Heartbeat</div>
+                    <div class="desc">Every mutation increments. Every increment re-renders. The constellation is always current. It breathes with you.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How it works -->
+        <section>
+            <h2 style="color: var(--pink);">How It Works</h2>
+            <p>You write. The ring classifier runs on every keystroke — microseconds. The parser builds a graph — debounced, 150ms. Metal renders the constellation — 60fps. An optional AI reads the pattern and names what it sees.</p>
+            <p>The constellation doesn't need a cloud. It needs a GPU and a human typing brackets.</p>
+            <p style="color: var(--text-dim);">Between sessions, Heimdall guards the gate. Nodes decay with a 2-hour half-life. Pins never decay. What had weight keeps weight. What faded waits in quarantine — say its name and it comes back.</p>
+        </section>
+
+        <!-- For whom -->
+        <section>
+            <h2 style="color: var(--red);">Who This Is For</h2>
+            <p>Writers who think by writing. Builders who think by building. Anyone who's ever had a feeling about where an idea is going but couldn't see the shape of it.</p>
+            <p>Zeus doesn't tell you what to think. It shows you the shape of what you're already thinking. The rings were always there. The brackets just make them visible.</p>
+        </section>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p class="pin">vvSTARTEDASADREAMvv</p>
+            <p class="whisper">Start writing. The rings will find you.</p>
+            <p style="margin-top: 24px;">
+                <a href="https://bsky.app/profile/servingkaos.com">@servingkaos.com</a>
+            </p>
+            <p style="margin-top: 8px; font-size: 0.75em; color: var(--text-whisper);">
+                macOS 15+ &middot; Metal GPU &middot; Local only &middot; No cloud &middot; No account
+            </p>
         </div>
     </div>
+
+    <script>
+        // Subtle star field — the constellation's background
+        const canvas = document.getElementById('stars');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        const stars = [];
+        for (let i = 0; i < 120; i++) {
+            stars.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight * 3,
+                r: Math.random() * 1.2 + 0.3,
+                a: Math.random() * 0.3 + 0.05,
+                speed: Math.random() * 0.0003 + 0.0001
+            });
+        }
+
+        function drawStars(t) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const scroll = window.scrollY;
+            for (const s of stars) {
+                const pulse = Math.sin(t * s.speed * 1000 + s.x) * 0.5 + 0.5;
+                const alpha = s.a * (0.6 + pulse * 0.4);
+                const y = (s.y - scroll * 0.1) % (canvas.height + 100);
+                ctx.beginPath();
+                ctx.arc(s.x, y < 0 ? y + canvas.height : y, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(180, 190, 220, ${alpha})`;
+                ctx.fill();
+            }
+            requestAnimationFrame(drawStars);
+        }
+        requestAnimationFrame(drawStars);
+    </script>
 </body>
 </html>
