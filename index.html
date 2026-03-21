@@ -545,6 +545,8 @@ function layoutLanes(nodes, time) {
 
 let canvas, ctx, animTime = 0, currentDoor = 'atom', currentNodes = [], laidNodes = [], stars = [];
 let animRunning = false, paused = false, lastInputTime = 0, lastFrameTime = 0;
+let zoom = 1.0;
+const ZOOM_MIN = 0.5, ZOOM_MAX = 5.0;
 
 function initStars() {
   stars = [];
@@ -594,13 +596,18 @@ function render() {
     const [r, gr, b] = RINGS[ring]?.color || [136, 136, 136];
     ctx.strokeStyle = `rgba(${r},${gr},${b},0.15)`;
     for (let i = 0; i < g.length; i++) for (let j = i + 1; j < g.length; j++) {
-      ctx.beginPath(); ctx.moveTo(g[i].x * w, g[i].y * h); ctx.lineTo(g[j].x * w, g[j].y * h); ctx.stroke();
+      const x1 = ((g[i].x - 0.5) * zoom + 0.5) * w, y1 = ((g[i].y - 0.5) * zoom + 0.5) * h;
+      const x2 = ((g[j].x - 0.5) * zoom + 0.5) * w, y2 = ((g[j].y - 0.5) * zoom + 0.5) * h;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
     }
   }
 
   for (const node of laidNodes) {
     const [r, g, b] = RINGS[node.ring]?.color || [136, 136, 136];
-    const nx = node.x * w, ny = node.y * h, nrd = node.size / 2;
+    // Zoom: scale position around center, scale size
+    const zx = (node.x - 0.5) * zoom + 0.5;
+    const zy = (node.y - 0.5) * zoom + 0.5;
+    const nx = zx * w, ny = zy * h, nrd = (node.size * zoom) / 2;
     const grad = ctx.createRadialGradient(nx, ny, 0, nx, ny, nrd * 2.5);
     grad.addColorStop(0, `rgba(${r},${g},${b},${node.opacity * 0.3})`);
     grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
@@ -733,6 +740,21 @@ document.querySelectorAll('.door-btn').forEach(btn => {
 });
 
 window.addEventListener('resize', resizeCanvas);
+
+// Zoom: mouse wheel on constellation
+document.querySelector('.constellation-panel')?.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom * delta));
+  lastInputTime = performance.now(); // wake the render
+  if (paused) { paused = false; document.getElementById('pauseBtn').textContent = '\u23F8'; requestAnimationFrame(render); }
+}, { passive: false });
+
+// Double-click to reset zoom
+document.querySelector('.constellation-panel')?.addEventListener('dblclick', () => {
+  zoom = 1.0;
+  lastInputTime = performance.now();
+});
 </script>
 </body>
 </html>
