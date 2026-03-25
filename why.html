@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zeus — But Why Though</title>
+    <meta name="description" content="Fair questions. Real answers. No pitch.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080816;
+            --gold: #ffd700;
+            --teal: #4ecdc4;
+            --blue: #5b8def;
+            --pink: #e07bda;
+            --green: #a0dca0;
+            --red: #ff6b6b;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: var(--bg);
+            color: #888;
+            overflow-x: hidden;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide {
+            position: relative;
+            z-index: 1;
+            min-height: 75vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 50px 40px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .slide.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .question {
+            font-size: 1.8em;
+            font-weight: 200;
+            color: #aaa;
+            letter-spacing: 0.05em;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+
+        .answer {
+            margin-top: 28px;
+            max-width: 540px;
+            font-size: 1.05em;
+            line-height: 2;
+            color: #777;
+            text-align: left;
+        }
+
+        .answer strong {
+            color: var(--teal);
+            font-weight: 400;
+        }
+
+        .answer em {
+            color: #999;
+            font-style: normal;
+        }
+
+        .punchline {
+            margin-top: 20px;
+            color: var(--gold);
+            font-size: 1em;
+            max-width: 540px;
+        }
+
+        .dim { color: #555; }
+
+        .link-tree {
+            display: inline-block;
+            margin: 12px 8px;
+            padding: 12px 28px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        .link-tree:hover {
+            color: var(--teal);
+            border-color: var(--teal);
+        }
+
+        #nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .nav-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: none; cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .nav-dot.active { transform: scale(1.4); }
+
+        .scroll-hint {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: #555;
+            font-size: 0.8em;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="star-canvas"></canvas>
+<div id="nav-dots"></div>
+<div class="scroll-hint">fair questions below</div>
+
+<!-- ═══════════════ BUT WHY THOUGH ═══════════════ -->
+
+<div class="slide">
+    <div class="question" style="color: #666;">
+        "OK but what does this<br>actually do for me?"
+    </div>
+    <p class="dim" style="margin-top: 24px;">Fair. Let's go.</p>
+</div>
+
+<div class="slide">
+    <div class="question">"I don't need a special app to think."</div>
+    <div class="answer">
+        You don't. You already think in three rings — you just don't see them. When you say <em>"I want a raise but my boss won't go for it and I don't know how to ask"</em> — that's <strong>intent</strong>, <strong>reality</strong>, <strong>gap</strong>. In one sentence. You already did the decomposition. Zeus just makes it visible so you can work with it instead of spinning on it.
+    </div>
+    <div class="punchline">You already use the notation. You just don't have it written down.</div>
+</div>
+
+<div class="slide">
+    <div class="question">"Why would I put brackets around my thoughts?"</div>
+    <div class="answer">
+        Same reason you'd put a grocery list on paper instead of memorizing it. Not because you can't hold it in your head. Because <strong>writing it down changes how you see it.</strong> The bracket isn't for the computer. It's for you. The moment you mark something as <em>*want*</em> vs <em>{fact}</em> vs <em>[question]</em>, you stop conflating them. That's the whole trick.
+    </div>
+    <div class="punchline">The bracket is a mirror, not a cage.</div>
+</div>
+
+<div class="slide">
+    <div class="question">"How is this different from journaling?"</div>
+    <div class="answer">
+        Journaling is great. But a journal doesn't show you patterns. Write for a week in Zeus and the constellation shows you: <strong>you've been all intent and no reality.</strong> Or: <strong>you've got 12 open questions and no anchors.</strong> Or: <strong>the same thought keeps evolving and you didn't notice.</strong> The journal holds your words. The constellation holds their shape.
+    </div>
+    <div class="punchline">A journal remembers what you said. Zeus shows you what you meant.</div>
+</div>
+
+<div class="slide">
+    <div class="question">"This seems like a lot of work."</div>
+    <div class="answer">
+        A single asterisk. That's the minimum. Type <strong>*I want coffee*</strong> and you've created an intent node. One character of notation. The constellation appears. The rings light up. You don't have to learn anything — <strong>you just type and the structure shows itself.</strong> If you never add another bracket, the local intelligence still reads the patterns. Zero configuration.
+    </div>
+    <div class="punchline">One character. Not a lot of work.</div>
+</div>
+
+<div class="slide">
+    <div class="question">"Isn't AI already doing this?"</div>
+    <div class="answer">
+        AI guesses what you mean. Zeus lets you <strong>say</strong> what you mean. ChatGPT reads your paragraph and infers intent. Zeus lets you <em>mark</em> your intent with a bracket — no inference, no guessing, no Kansas detour. The AI can still help — Zeus has an intelligence layer that reads the constellation. But it reads what <strong>you classified</strong>, not what it guessed.
+    </div>
+    <div class="punchline">The difference between someone reading your mind and you writing it down.</div>
+</div>
+
+<div class="slide">
+    <div class="question">"OK but how does this change the world?"</div>
+    <div class="answer">
+        Every broken system hides the gap between what it says and what it does. <strong>The privacy policy you didn't read. The hold music that replaced a human. The contract they violated "for your convenience."</strong> The gap is where the exploitation lives. If everyone could see the three rings — intent, reality, gap — in every interaction, the hiding stops working. Not because of a law. Because of a notation.
+    </div>
+    <div class="punchline">You can't gaslight someone who can see the brackets.</div>
+</div>
+
+<div class="slide">
+    <div class="question">"Who is this actually for?"</div>
+    <div class="answer">
+        <strong>Writers</strong> who think out loud and want to see the shape of it.<br>
+        <strong>People in therapy</strong> who keep saying "I don't know what I want" — the rings help you find it.<br>
+        <strong>Students</strong> who need to decompose arguments.<br>
+        <strong>Developers</strong> who already think in types and want cognitive types.<br>
+        <strong>Anyone</strong> who's ever said "I can't explain what I'm feeling" and wished they had a language for it.<br>
+    </div>
+    <div class="punchline">It's for anyone who thinks. So: you.</div>
+</div>
+
+<div class="slide">
+    <div class="question">"What's the catch?"</div>
+    <div class="answer">
+        No account. No server. No tracking. No data collection. Runs on your machine. The trees you just scrolled through are single HTML files — <strong>view source, it's all there.</strong> The app stores everything in <em>~/.zeus/</em> on your own disk. The intelligence can run locally with zero API. There is no catch. The instrument is the product. You are not.
+    </div>
+    <div class="punchline">View source. It's all right there.</div>
+</div>
+
+<div class="slide">
+    <div class="question">"Why should I trust this?"</div>
+    <div class="answer">
+        Don't trust it. <strong>Try it.</strong> Type one bracket. See what happens. If the constellation shows you something you didn't know you were thinking — it's working. If it doesn't — close it. No signup to cancel. No data to delete. No account to deactivate. The trust model is: <strong>you can leave in one click and nothing follows you.</strong>
+    </div>
+    <div class="punchline">The best trust model is: you can leave.</div>
+</div>
+
+<div class="slide">
+    <div class="question" style="color: var(--teal);">"...huh."</div>
+    <p class="dim" style="margin-top: 24px;">
+        Yeah. That's the usual reaction.<br>
+        Right before the first bracket.
+    </p>
+
+    <div style="margin-top: 48px;">
+        <a href="honeytree.html" class="link-tree" style="color: var(--gold);" onmouseover="this.style.borderColor='var(--gold)';" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';">
+            feel it
+        </a>
+        <a href="slideshow.html" class="link-tree" style="color: var(--teal);" onmouseover="this.style.borderColor='var(--teal)';" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';">
+            prove it
+        </a>
+        <a href="kansas.html" class="link-tree" style="color: var(--red);" onmouseover="this.style.borderColor='var(--red)';" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';">
+            see the hypocrisy
+        </a>
+        <a href="ubuntutrees.html" class="link-tree">
+            the forest
+        </a>
+    </div>
+</div>
+
+<script>
+const starCanvas = document.getElementById('star-canvas');
+const starCtx = starCanvas.getContext('2d');
+
+function resize() {
+    starCanvas.width = window.innerWidth;
+    starCanvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const stars = [];
+for (let i = 0; i < 100; i++) {
+    stars.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight * 11,
+        r: Math.random() * 1 + 0.3,
+        a: Math.random() * 0.1 + 0.03,
+        speed: Math.random() * 0.001 + 0.0003
+    });
+}
+
+function drawStars(t) {
+    starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+    const scrollY = window.scrollY;
+    for (const s of stars) {
+        const sy = s.y - scrollY * 0.3;
+        if (sy < -10 || sy > starCanvas.height + 10) continue;
+        const pulse = Math.sin(t * s.speed + s.x) * 0.5 + 0.5;
+        const alpha = s.a * (0.5 + pulse * 0.5);
+        starCtx.beginPath();
+        starCtx.arc(s.x, sy, s.r, 0, Math.PI * 2);
+        starCtx.fillStyle = `rgba(180, 190, 220, ${alpha})`;
+        starCtx.fill();
+    }
+}
+
+const slides = document.querySelectorAll('.slide');
+const navDots = document.getElementById('nav-dots');
+slides.forEach(slide => {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot';
+    dot.addEventListener('click', () => slide.scrollIntoView({ behavior: 'smooth' }));
+    navDots.appendChild(dot);
+});
+const navDotEls = navDots.querySelectorAll('.nav-dot');
+
+const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.25 });
+slides.forEach(s => observer.observe(s));
+
+function updateActive() {
+    const vh = window.innerHeight;
+    let ai = 0, min = Infinity;
+    slides.forEach((s, i) => {
+        const d = Math.abs(s.getBoundingClientRect().top + s.getBoundingClientRect().height / 2 - vh / 2);
+        if (d < min) { min = d; ai = i; }
+    });
+    navDotEls.forEach((d, i) => {
+        d.classList.toggle('active', i === ai);
+        d.style.background = i === ai ? '#4ecdc4' : '';
+        d.style.boxShadow = i === ai ? '0 0 8px rgba(78,205,196,0.6)' : '';
+    });
+}
+
+window.addEventListener('scroll', () => {
+    updateActive();
+    const hint = document.querySelector('.scroll-hint');
+    if (window.scrollY > 50 && hint) { hint.style.opacity = '0'; hint.style.transition = 'opacity 0.5s'; }
+});
+
+function animate(t) { drawStars(t); requestAnimationFrame(animate); }
+updateActive();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>
