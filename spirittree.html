@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zeus — Rich Spirits</title>
+    <meta name="description" content="One caterpillar's journey through music. Mosh to Handlebars to the Butterfly.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080816;
+            --gold: #ffd700;
+            --teal: #4ecdc4;
+            --blue: #5b8def;
+            --pink: #e07bda;
+            --green: #a0dca0;
+            --red: #ff6b6b;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: var(--bg);
+            color: #888;
+            overflow-x: hidden;
+        }
+
+        #trail-canvas, #star-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+        #star-canvas { z-index: 0; }
+        #trail-canvas { z-index: 2; }
+
+        #temper-bg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            transition: background 2.5s ease;
+        }
+
+        .slide {
+            position: relative;
+            z-index: 1;
+            min-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 1.4s ease, transform 1.4s ease;
+        }
+
+        .slide.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .slide h2 {
+            font-size: 2.4em;
+            font-weight: 200;
+            letter-spacing: 0.15em;
+            margin-bottom: 20px;
+        }
+
+        .slide p {
+            max-width: 540px;
+            line-height: 2;
+            font-size: 1.05em;
+        }
+
+        .dim { color: #666; }
+        .whisper { color: #3a3a3a; font-size: 0.85em; }
+
+        .notation {
+            margin-top: 28px;
+            padding: 20px 32px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 1.05em;
+            line-height: 2.4;
+            text-align: left;
+            max-width: 540px;
+        }
+
+        .n-intent { color: var(--gold); }
+        .n-reality { color: var(--teal); }
+        .n-gap { color: var(--blue); }
+        .n-cross { color: var(--pink); }
+        .n-aether { color: var(--green); }
+        .n-pin { color: var(--red); }
+
+        .lyric {
+            font-style: italic;
+            color: #555;
+            font-size: 0.95em;
+            margin-top: 20px;
+            line-height: 1.8;
+        }
+
+        .era-label {
+            font-size: 0.7em;
+            letter-spacing: 0.3em;
+            color: #555;
+            margin-bottom: 12px;
+        }
+
+        /* ── Ring evolution indicator ── */
+        .ring-evolution {
+            display: flex;
+            gap: 8px;
+            margin-top: 24px;
+            align-items: center;
+        }
+
+        .ring-dot-evo {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transition: all 0.5s ease;
+        }
+
+        .ring-dot-evo.lit {
+            box-shadow: 0 0 12px currentColor;
+            transform: scale(1.3);
+        }
+
+        .ring-dot-evo.dim-dot {
+            opacity: 0.15;
+        }
+
+        #nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: none;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .nav-dot.active { transform: scale(1.4); }
+
+        .scroll-hint {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: #555;
+            font-size: 0.8em;
+            letter-spacing: 0.1em;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        .link-tree {
+            display: inline-block;
+            margin: 12px 8px;
+            padding: 12px 28px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.9em;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+        .link-tree:hover {
+            border-color: currentColor;
+            box-shadow: 0 0 20px rgba(255,255,255,0.05);
+        }
+
+        .arrow-label {
+            font-size: 2em;
+            color: #555;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="temper-bg"></div>
+<canvas id="star-canvas"></canvas>
+<canvas id="trail-canvas"></canvas>
+<div id="nav-dots"></div>
+<div class="scroll-hint">scroll to begin</div>
+
+<!-- ═══════════════════ RICH SPIRITS ═══════════════════ -->
+
+<!-- 0: YOUR THREAD -->
+<div class="slide" data-ring="pink" data-temper="rest" id="slide-0">
+    <p class="era-label">YOUR CATERPILLAR</p>
+    <h2 style="color: var(--pink);">Rich Spirits</h2>
+    <p>
+        Everyone's thread goes through the same places.<br>
+        But the music you found there is yours.
+    </p>
+    <p class="dim" style="margin-top: 24px;">
+        This is one caterpillar's journey.<br>
+        Yours would have different songs.<br>
+        Same rings.
+    </p>
+</div>
+
+<!-- 1: MOSH -->
+<div class="slide" data-ring="red" data-temper="friction" id="slide-1">
+    <p class="era-label">2004</p>
+    <h2 style="color: var(--red);">Mosh</h2>
+    <p>Pure intent. No nuance. No second-guessing.<br>
+    The fist in the air before you know what you're fighting.</p>
+
+    <div class="notation">
+        <span class="n-intent">*EVERYBODY VOTE*</span><br>
+        <span class="n-intent">*STAND UP*</span><br>
+        <span class="n-intent">*STOMP PUSH SHOVE*</span>
+    </div>
+
+    <p class="lyric">
+        "Come along, follow me as I lead through the darkness"
+    </p>
+
+    <div class="ring-evolution">
+        <div class="ring-dot-evo lit" style="background: var(--gold); color: var(--gold);"></div>
+        <div class="ring-dot-evo dim-dot" style="background: var(--teal);"></div>
+        <div class="ring-dot-evo dim-dot" style="background: var(--blue);"></div>
+        <div class="ring-dot-evo dim-dot" style="background: var(--pink);"></div>
+    </div>
+
+    <p class="whisper" style="margin-top: 12px;">all intent. no ground yet.</p>
+</div>
+
+<!-- 2: HANDLEBARS -->
+<div class="slide" data-ring="blue" data-temper="wonder" id="slide-2">
+    <p class="era-label">2005</p>
+    <h2 style="color: var(--blue);">Handlebars</h2>
+    <p>The gap opens. Same power, two directions.<br>
+    The first time you see that the tool is neutral.</p>
+
+    <div class="notation">
+        <span class="n-reality">{I can ride my bike with no handlebars}</span><br>
+        <span class="n-reality">{I can keep rhythm with no metronome}</span><br>
+        <span class="n-gap">[I can split the atoms of a molecule]</span><br>
+        <span class="n-gap">[I can end the planet in a holocaust]</span><br>
+        <span class="n-cross">^same sentence, same person, opposite ends^</span>
+    </div>
+
+    <p class="lyric">
+        "Look at me, look at me, hands in the air like it's good to be alive"
+    </p>
+
+    <div class="ring-evolution">
+        <div class="ring-dot-evo lit" style="background: var(--gold); color: var(--gold);"></div>
+        <div class="ring-dot-evo lit" style="background: var(--teal); color: var(--teal);"></div>
+        <div class="ring-dot-evo lit" style="background: var(--blue); color: var(--blue);"></div>
+        <div class="ring-dot-evo dim-dot" style="background: var(--pink);"></div>
+    </div>
+
+    <p class="whisper" style="margin-top: 12px;">reality arrives. the gap splits open.</p>
+</div>
+
+<!-- 3: DETOUR — WHO MIKE JONES -->
+<div class="slide" data-ring="gold" data-temper="frolic" id="slide-3">
+    <p class="era-label">DETOUR — 2005</p>
+    <h2 style="color: var(--gold); font-size: 1.8em;">Who?</h2>
+    <p style="color: var(--gold); font-size: 1.4em;">Mike Jones.</p>
+
+    <div class="notation">
+        <span class="n-intent">*281-330-8004*</span><br>
+        <span class="n-reality">{he put his real number on the track}</span><br>
+        <span class="n-cross">^the gap between famous and reachable was zero^</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        The caterpillar doesn't walk in a straight line.<br>
+        Sometimes it just vibes.
+    </p>
+</div>
+
+<!-- 4: THE SHIFT -->
+<div class="slide" data-ring="green" data-temper="witness" id="slide-4">
+    <p class="dim" style="font-size: 1.3em; letter-spacing: 0.15em;">
+        something changed
+    </p>
+    <p class="whisper" style="margin-top: 32px;">
+        you stopped wanting to fight<br>
+        and started wanting to see
+    </p>
+    <div class="arrow-label">...</div>
+</div>
+
+<!-- 5: DETOUR — PRETTY LIGHTS -->
+<div class="slide" data-ring="green" data-temper="wonder" id="slide-5">
+    <p class="era-label">DETOUR — 2009</p>
+    <h2 style="color: var(--green);">Pretty Lights</h2>
+    <p>The caterpillar finds a different door.<br>
+    No words. No verse. Just frequency.</p>
+
+    <div class="notation">
+        <span class="n-intent">*I want to feel this without language*</span><br>
+        <span class="n-reality">{the bass is analog, the sampler is digital}</span><br>
+        <span class="n-gap">[where does the soul live in a waveform?]</span><br>
+        <span class="n-aether">:the drop is the gap closing:</span>
+    </div>
+
+    <p class="lyric">
+        no lyrics. just the moment<br>
+        before the drop when you know<br>
+        it's coming and your body decides<br>
+        before your brain does.
+    </p>
+
+    <p class="dim" style="margin-top: 20px;">
+        EDM proved the three rings don't need words.<br>
+        Build-up is intent. Drop is reality. The space between is gap.
+    </p>
+</div>
+
+<!-- 6: SWIMMING POOLS -->
+<div class="slide" data-ring="teal" data-temper="friction" id="slide-6">
+    <p class="era-label">2012</p>
+    <h2 style="color: var(--teal);">Swimming Pools</h2>
+    <p>The mirror. The thing that sounds like a party<br>
+    but is actually drowning.</p>
+
+    <div class="notation">
+        <span class="n-intent">*pour up*</span><br>
+        <span class="n-reality">{everybody's watching}</span><br>
+        <span class="n-gap">[why does the celebration feel like sinking?]</span><br>
+        <span class="n-cross">^you thought this was a club song^</span>
+    </div>
+
+    <p class="lyric">
+        "All I have in life is my new appetite for failure"
+    </p>
+
+    <div class="ring-evolution">
+        <div class="ring-dot-evo lit" style="background: var(--gold); color: var(--gold);"></div>
+        <div class="ring-dot-evo lit" style="background: var(--teal); color: var(--teal);"></div>
+        <div class="ring-dot-evo lit" style="background: var(--blue); color: var(--blue);"></div>
+        <div class="ring-dot-evo lit" style="background: var(--pink); color: var(--pink);"></div>
+    </div>
+
+    <p class="whisper" style="margin-top: 12px;">all four rings. the cross-ring wakes up.</p>
+</div>
+
+<!-- 5: MONEY TREES -->
+<div class="slide" data-ring="gold" data-temper="frolic" id="slide-7">
+    <p class="era-label">2012</p>
+    <h2 style="color: var(--gold);">Money Trees</h2>
+    <p style="color: var(--gold);">The perfect place for shade.</p>
+
+    <div class="notation">
+        <span class="n-intent">*a dollar might just make that dream come true*</span><br>
+        <span class="n-reality">{everybody gon' respect the shooter}</span><br>
+        <span class="n-gap">[but spirit, we just a made it]</span><br>
+        <span class="n-aether">:bish don't kill my vibe:</span>
+    </div>
+
+    <p class="lyric">
+        "That's just how I feel"
+    </p>
+</div>
+
+<!-- 6: ALRIGHT -->
+<div class="slide" data-ring="gold" data-temper="clarity" id="slide-6">
+    <p class="era-label">2015</p>
+    <h2 style="color: var(--gold);">Alright</h2>
+    <p>Hope as rebellion. Intent so strong it becomes reality.</p>
+
+    <div class="notation">
+        <span class="n-intent">*we gon' be alright*</span><br>
+        <span class="n-reality">{the whole world going to hell}</span><br>
+        <span class="n-cross">^and I said it anyway^</span><br>
+        <span class="n-pin">vvALRIGHTvv</span>
+    </div>
+
+    <p class="lyric">
+        "Do you hear me, do you feel me? We gon' be alright."
+    </p>
+</div>
+
+<!-- 7: MORTAL MAN -->
+<div class="slide" data-ring="pink" data-temper="witness" id="slide-7">
+    <p class="era-label">2015</p>
+    <h2 style="color: var(--pink);">Mortal Man</h2>
+    <p>The interview with a ghost.<br>
+    The caterpillar speaks to the butterfly it doesn't know it is yet.</p>
+
+    <div class="notation">
+        <span class="n-cross">^the caterpillar is a prisoner to the streets^</span><br>
+        <span class="n-cross">^that only detracts^</span><br>
+        <span class="n-aether">:from finding its cocoon:</span><br>
+        <span class="n-gap">[what's free?]</span>
+    </div>
+
+    <p class="lyric">
+        "I remember you was conflicted, misusing your influence"
+    </p>
+
+    <p class="dim" style="margin-top: 20px;">
+        He was talking to Tupac.<br>
+        But the dead man answered.
+    </p>
+</div>
+
+<!-- 8: RICH SPIRIT -->
+<div class="slide" data-ring="gold" data-temper="clarity" id="slide-8">
+    <p class="era-label">2022</p>
+    <h2 style="color: var(--gold);">Rich Spirit</h2>
+    <p>Past the anger. Past the mirror. Past the ghost.<br>
+    The thing that's left when you strip everything else away.</p>
+
+    <div class="notation">
+        <span class="n-reality">{I'm a survivor}</span><br>
+        <span class="n-intent">*I don't need to prove it to you*</span><br>
+        <span class="n-aether">:the spirit was always rich:</span><br>
+        <span class="n-pin">vvDOESNOTBENDvv</span>
+    </div>
+
+    <p class="lyric">
+        "I ain't happy without it"
+    </p>
+</div>
+
+<!-- GNX -->
+<div class="slide" data-ring="red" data-temper="clarity" id="slide-gnx">
+    <p class="era-label">2024</p>
+    <h2 style="color: var(--red);">GNX</h2>
+    <p>The truck. The hometown. The thing you drove before anyone knew your name.</p>
+
+    <div class="notation">
+        <span class="n-reality">{I been in the trenches so long}</span><br>
+        <span class="n-intent">*squabble up*</span><br>
+        <span class="n-cross">^wacced out Murals — the whole wall is one painting^</span><br>
+        <span class="n-pin">vvCOMPTONvv</span>
+    </div>
+
+    <p class="lyric">
+        The butterfly came home.<br>
+        In a truck, not a limo.
+    </p>
+
+    <p class="dim" style="margin-top: 20px;">
+        The spirit doesn't flex.<br>
+        It just pulls up.
+    </p>
+</div>
+
+<!-- THE THREAD -->
+<div class="slide" data-ring="green" data-temper="rest" id="slide-9">
+    <h2 style="color: var(--green);">The Thread</h2>
+    <p>
+        Mosh was all gold. Pure intent. No ground.<br>
+        Handlebars opened the gap.<br>
+        Kendrick filled every ring.
+    </p>
+    <p style="margin-top: 24px; color: var(--green);">
+        The caterpillar didn't get smarter.<br>
+        It grew more rings.
+    </p>
+    <p class="dim" style="margin-top: 24px;">
+        Your thread has different songs.<br>
+        Same journey. Same rings.<br>
+        Same butterfly waiting at the end.
+    </p>
+</div>
+
+<!-- 10: YOUR TURN -->
+<div class="slide" data-ring="gold" data-temper="clarity" id="slide-10">
+    <h2 style="color: var(--gold); font-size: 2.8em; font-weight: 100; letter-spacing: 0.3em;">
+        Your Turn
+    </h2>
+
+    <p style="margin-top: 24px; color: var(--gold);">
+        What songs are YOUR thread?
+    </p>
+
+    <p class="dim" style="margin-top: 32px;">
+        The bracket doesn't care about genre.<br>
+        It cares about what you wanted,<br>
+        what was real,<br>
+        and what you couldn't name yet.
+    </p>
+
+    <div style="margin-top: 48px;">
+        <a href="honeytree.html" class="link-tree" style="color: var(--gold);" onmouseover="this.style.color='#ffd700'; this.style.borderColor='#ffd700';" onmouseout="this.style.color='var(--gold)'; this.style.borderColor='rgba(255,255,255,0.08)';">
+            the honey tree
+        </a>
+        <a href="slideshow.html" class="link-tree" style="color: var(--teal);" onmouseover="this.style.color='#4ecdc4'; this.style.borderColor='#4ecdc4';" onmouseout="this.style.color='var(--teal)'; this.style.borderColor='rgba(255,255,255,0.08)';">
+            the money tree
+        </a>
+
+        <a href="ubuntutrees.html" class="link-tree" style="color: #555; font-size: 0.85em;" onmouseover="this.style.color='#888';" onmouseout="this.style.color='#555';">
+            the forest
+        </a>
+    </div>
+</div>
+
+<script>
+// ═══════════════════ STARS ═══════════════════
+const starCanvas = document.getElementById('star-canvas');
+const starCtx = starCanvas.getContext('2d');
+
+function resizeStars() {
+    starCanvas.width = window.innerWidth;
+    starCanvas.height = window.innerHeight;
+}
+resizeStars();
+window.addEventListener('resize', resizeStars);
+
+const stars = [];
+for (let i = 0; i < 160; i++) {
+    stars.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight * 11,
+        r: Math.random() * 1.2 + 0.3,
+        a: Math.random() * 0.15 + 0.03,
+        speed: Math.random() * 0.001 + 0.0003
+    });
+}
+
+function drawStars(t) {
+    starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+    const scrollY = window.scrollY;
+    for (const s of stars) {
+        const sy = s.y - scrollY * 0.3;
+        if (sy < -10 || sy > starCanvas.height + 10) continue;
+        const pulse = Math.sin(t * s.speed + s.x) * 0.5 + 0.5;
+        const alpha = s.a * (0.5 + pulse * 0.5);
+        starCtx.beginPath();
+        starCtx.arc(s.x, sy, s.r, 0, Math.PI * 2);
+        starCtx.fillStyle = `rgba(180, 190, 220, ${alpha})`;
+        starCtx.fill();
+    }
+}
+
+// ═══════════════════ TEMPER BACKGROUND ═══════════════════
+const temperBg = document.getElementById('temper-bg');
+const TEMPER_COLORS = {
+    rest:     'rgba(8, 8, 22, 1)',
+    frolic:   'rgba(12, 10, 24, 1)',
+    friction: 'rgba(20, 8, 14, 1)',
+    wonder:   'rgba(10, 12, 28, 1)',
+    clarity:  'rgba(12, 10, 18, 1)',
+    dread:    'rgba(22, 6, 14, 1)',
+    witness:  'rgba(6, 8, 16, 1)',
+};
+
+// ═══════════════════ YONDU TRAIL ═══════════════════
+const trailCanvas = document.getElementById('trail-canvas');
+const trailCtx = trailCanvas.getContext('2d');
+
+function resizeTrail() {
+    trailCanvas.width = window.innerWidth;
+    trailCanvas.height = window.innerHeight;
+}
+resizeTrail();
+window.addEventListener('resize', () => { resizeStars(); resizeTrail(); });
+
+const RING_COLORS = {
+    teal:  { r: 78,  g: 205, b: 196 },
+    gold:  { r: 255, g: 215, b: 0 },
+    blue:  { r: 91,  g: 141, b: 239 },
+    pink:  { r: 224, g: 123, b: 218 },
+    green: { r: 160, g: 220, b: 160 },
+    red:   { r: 255, g: 107, b: 107 },
+};
+
+const trail = [];
+const MAX_TRAIL = 150;
+let arrowX = window.innerWidth / 2;
+let arrowY = window.innerHeight / 2;
+let targetX = arrowX;
+let targetY = arrowY;
+let currentColor = RING_COLORS.pink;
+let targetColor = RING_COLORS.pink;
+
+function updateArrowTarget() {
+    const slides = document.querySelectorAll('.slide');
+    const vh = window.innerHeight;
+    let activeSlide = null;
+    let minDist = Infinity;
+
+    slides.forEach(slide => {
+        const rect = slide.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const dist = Math.abs(center - vh / 2);
+        if (dist < minDist) {
+            minDist = dist;
+            activeSlide = slide;
+        }
+    });
+
+    if (activeSlide) {
+        const rect = activeSlide.getBoundingClientRect();
+        targetX = rect.left + rect.width / 2;
+        targetY = rect.top + rect.height * 0.3;
+
+        const ring = activeSlide.dataset.ring || 'teal';
+        targetColor = RING_COLORS[ring] || RING_COLORS.teal;
+
+        const temper = activeSlide.dataset.temper || 'rest';
+        temperBg.style.background = TEMPER_COLORS[temper] || TEMPER_COLORS.rest;
+    }
+}
+
+function lerpColor(a, b, t) {
+    return {
+        r: a.r + (b.r - a.r) * t,
+        g: a.g + (b.g - a.g) * t,
+        b: a.b + (b.b - a.b) * t,
+    };
+}
+
+function drawTrail(time) {
+    trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+
+    const ease = 0.03;
+    arrowX += (targetX - arrowX) * ease;
+    arrowY += (targetY - arrowY) * ease;
+    currentColor = lerpColor(currentColor, targetColor, 0.025);
+
+    // The caterpillar WANDERS — wide, searching, doubling back
+    const driftX = Math.sin(time * 0.0004) * 90 + Math.sin(time * 0.0011) * 40 + Math.cos(time * 0.0019) * 25;
+    const driftY = Math.cos(time * 0.0003) * 45 + Math.sin(time * 0.0009) * 30 + Math.cos(time * 0.0017) * 18;
+    const px = arrowX + driftX;
+    const py = arrowY + driftY;
+
+    trail.push({ x: px, y: py, t: time, color: { ...currentColor } });
+    if (trail.length > MAX_TRAIL) trail.shift();
+
+    if (trail.length < 3) return;
+
+    for (let i = 1; i < trail.length; i++) {
+        const prev = trail[i - 1];
+        const curr = trail[i];
+        const life = i / trail.length;
+        const alpha = life * life * 0.4;
+
+        const c = curr.color;
+        trailCtx.beginPath();
+        trailCtx.moveTo(prev.x, prev.y);
+        trailCtx.lineTo(curr.x, curr.y);
+        trailCtx.strokeStyle = `rgba(${c.r|0}, ${c.g|0}, ${c.b|0}, ${alpha})`;
+        trailCtx.lineWidth = 0.8 + life * 2.5;
+        trailCtx.lineCap = 'round';
+        trailCtx.stroke();
+    }
+
+    const head = trail[trail.length - 1];
+    const hc = head.color;
+    const gradient = trailCtx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 25);
+    gradient.addColorStop(0, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.5)`);
+    gradient.addColorStop(0.4, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.12)`);
+    gradient.addColorStop(1, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0)`);
+    trailCtx.beginPath();
+    trailCtx.arc(head.x, head.y, 25, 0, Math.PI * 2);
+    trailCtx.fillStyle = gradient;
+    trailCtx.fill();
+
+    trailCtx.beginPath();
+    trailCtx.arc(head.x, head.y, 2.5, 0, Math.PI * 2);
+    trailCtx.fillStyle = `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.9)`;
+    trailCtx.fill();
+}
+
+// ═══════════════════ SCROLL OBSERVATION ═══════════════════
+const slides = document.querySelectorAll('.slide');
+const navDots = document.getElementById('nav-dots');
+
+slides.forEach((slide, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot';
+    dot.addEventListener('click', () => {
+        slide.scrollIntoView({ behavior: 'smooth' });
+    });
+    navDots.appendChild(dot);
+});
+
+const navDotEls = navDots.querySelectorAll('.nav-dot');
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+        }
+    });
+}, { threshold: 0.25 });
+
+slides.forEach(slide => observer.observe(slide));
+
+function updateActiveSlide() {
+    const vh = window.innerHeight;
+    let activeIndex = 0;
+    let minDist = Infinity;
+
+    slides.forEach((slide, i) => {
+        const rect = slide.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const dist = Math.abs(center - vh / 2);
+        if (dist < minDist) {
+            minDist = dist;
+            activeIndex = i;
+        }
+    });
+
+    navDotEls.forEach((dot, i) => {
+        dot.classList.toggle('active', i === activeIndex);
+        if (i === activeIndex) {
+            const ring = slides[i].dataset.ring || 'teal';
+            const c = RING_COLORS[ring] || RING_COLORS.teal;
+            dot.style.background = `rgb(${c.r}, ${c.g}, ${c.b})`;
+            dot.style.boxShadow = `0 0 8px rgba(${c.r}, ${c.g}, ${c.b}, 0.6)`;
+        } else {
+            dot.style.background = '';
+            dot.style.boxShadow = '';
+        }
+    });
+}
+
+window.addEventListener('scroll', () => {
+    updateArrowTarget();
+    updateActiveSlide();
+
+    const hint = document.querySelector('.scroll-hint');
+    if (window.scrollY > 50 && hint) {
+        hint.style.opacity = '0';
+        hint.style.transition = 'opacity 0.5s';
+    }
+});
+
+function animate(time) {
+    drawStars(time);
+    drawTrail(time);
+    requestAnimationFrame(animate);
+}
+
+updateArrowTarget();
+updateActiveSlide();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>

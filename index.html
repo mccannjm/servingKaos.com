@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zeus — The Thread Through Everything</title>
-    <meta name="description" content="Every industry decomposes the same way. Want. Fact. Gap. The thread connects them all.">
-    <meta property="og:title" content="Zeus — The Thread Through Everything">
-    <meta property="og:description" content="What if the structure of your thinking is the same structure that runs the world?">
+    <title>Ubuntu Trees</title>
+    <meta name="description" content="I am because we are. Four trees, one root system.">
+    <meta property="og:title" content="Ubuntu Trees">
+    <meta property="og:description" content="The forest was never separate trees. Same three rings. Every thread connected.">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -18,8 +18,6 @@
             --pink: #e07bda;
             --green: #a0dca0;
             --red: #ff6b6b;
-            --dim: #333;
-            --whisper: #1a1a2a;
         }
 
         body {
@@ -27,463 +25,306 @@
             background: var(--bg);
             color: #888;
             overflow-x: hidden;
+            min-height: 100vh;
         }
 
-        /* ── Trail canvas ── */
-        #trail-canvas {
+        canvas {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            z-index: 2;
             pointer-events: none;
         }
+        #star-canvas { z-index: 0; }
+        #root-canvas { z-index: 1; }
 
-        #star-canvas {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        /* ── Slides ── */
-        .slide {
+        /* ── Main layout ── */
+        .container {
             position: relative;
-            z-index: 1;
+            z-index: 2;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            padding: 80px 40px;
+            justify-content: center;
+            padding: 60px 40px;
+        }
+
+        /* ── Title ── */
+        .title {
             text-align: center;
+            margin-bottom: 60px;
             opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.8s ease, transform 0.8s ease;
+            animation: fadeUp 1.5s ease forwards;
         }
 
-        .slide.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .slide h1 {
-            font-size: 3em;
-            font-weight: 200;
-            letter-spacing: 0.15em;
+        .title h1 {
+            font-size: 3.2em;
+            font-weight: 100;
+            letter-spacing: 0.3em;
             color: #ccc;
-            margin-bottom: 24px;
-        }
-
-        .slide h2 {
-            font-size: 1.8em;
-            font-weight: 300;
-            letter-spacing: 0.1em;
-            margin-bottom: 20px;
-        }
-
-        .slide p {
-            max-width: 600px;
-            line-height: 1.9;
-            font-size: 1.05em;
-            margin-bottom: 16px;
-        }
-
-        .slide .dim { color: var(--dim); }
-        .slide .whisper { color: var(--whisper); font-style: italic; }
-
-        /* ── Ring dots ── */
-        .ring-row {
-            display: flex;
-            gap: 32px;
-            margin-top: 32px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .ring-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .ring-dot {
-            width: 12px; height: 12px;
-            border-radius: 50%;
-        }
-
-        .ring-label { font-size: 0.85em; }
-
-        /* ── Industry decomposition cards ── */
-        .decomp {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 8px 20px;
-            text-align: left;
-            margin-top: 20px;
-            max-width: 520px;
-        }
-
-        .decomp .tag {
-            font-size: 0.8em;
-            font-weight: 600;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            text-align: right;
-            padding-top: 2px;
-        }
-
-        .decomp .desc {
-            font-size: 0.9em;
-            line-height: 1.7;
-        }
-
-        /* ── Convergence proof ── */
-        .convergence-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            margin-top: 32px;
-            max-width: 700px;
-        }
-
-        .convergence-card {
-            padding: 20px;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.04);
-            border-radius: 12px;
-        }
-
-        .convergence-card .field {
-            font-size: 0.75em;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
             margin-bottom: 12px;
         }
 
-        .convergence-card .mapping {
-            font-size: 0.82em;
-            line-height: 1.8;
+        .title p {
+            font-size: 1.1em;
+            color: #444;
+            font-style: italic;
         }
 
-        /* ── Navigation dots ── */
-        .nav-dots {
-            position: fixed;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .nav-dot {
-            width: 8px; height: 8px;
+        /* ── Tree grid ── */
+        .forest {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            max-width: 700px;
+            width: 100%;
+            opacity: 0;
+            animation: fadeUp 1.5s ease 0.5s forwards;
+        }
+
+        .tree-card {
+            position: relative;
+            padding: 32px 28px;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.015);
+            text-decoration: none;
+            transition: all 0.5s ease;
+            overflow: hidden;
+        }
+
+        .tree-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .tree-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            opacity: 0.4;
+            transition: opacity 0.5s ease;
+        }
+
+        .tree-card:hover::before {
+            opacity: 0.8;
+        }
+
+        .tree-dot {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.1);
-            cursor: pointer;
-            transition: all 0.3s;
-            border: none;
-            padding: 0;
+            margin-bottom: 16px;
+            transition: box-shadow 0.5s ease;
         }
 
-        .nav-dot.active {
-            background: var(--teal);
-            box-shadow: 0 0 8px var(--teal);
+        .tree-card:hover .tree-dot {
+            box-shadow: 0 0 20px currentColor;
         }
 
-        /* ── Scroll hint ── */
-        .scroll-hint {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
+        .tree-name {
+            font-size: 1.3em;
+            font-weight: 200;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .tree-tagline {
+            font-size: 0.85em;
+            line-height: 1.7;
+            display: block;
+        }
+
+        .tree-ring-label {
             font-size: 0.7em;
-            color: var(--whisper);
-            animation: bob 2s ease-in-out infinite;
+            letter-spacing: 0.15em;
+            margin-top: 16px;
+            display: block;
+            opacity: 0.4;
         }
 
-        @keyframes bob {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(-6px); }
+        /* ── Money Tree ── */
+        .tree-money { border-color: rgba(78, 205, 196, 0.1); }
+        .tree-money::before { background: var(--teal); }
+        .tree-money .tree-dot { background: var(--teal); color: var(--teal); }
+        .tree-money .tree-name { color: var(--teal); }
+        .tree-money .tree-tagline { color: #4a7a76; }
+        .tree-money:hover { border-color: rgba(78, 205, 196, 0.2); box-shadow: 0 0 40px rgba(78, 205, 196, 0.05); }
+
+        /* ── Honey Tree ── */
+        .tree-honey { border-color: rgba(255, 215, 0, 0.1); }
+        .tree-honey::before { background: var(--gold); }
+        .tree-honey .tree-dot { background: var(--gold); color: var(--gold); }
+        .tree-honey .tree-name { color: var(--gold); }
+        .tree-honey .tree-tagline { color: #7a6a20; }
+        .tree-honey:hover { border-color: rgba(255, 215, 0, 0.2); box-shadow: 0 0 40px rgba(255, 215, 0, 0.05); }
+
+        /* ── Spirit Tree ── */
+        .tree-spirit { border-color: rgba(224, 123, 218, 0.1); }
+        .tree-spirit::before { background: var(--pink); }
+        .tree-spirit .tree-dot { background: var(--pink); color: var(--pink); }
+        .tree-spirit .tree-name { color: var(--pink); }
+        .tree-spirit .tree-tagline { color: #7a4a77; }
+        .tree-spirit:hover { border-color: rgba(224, 123, 218, 0.2); box-shadow: 0 0 40px rgba(224, 123, 218, 0.05); }
+
+        /* ── World Tree (seed) ── */
+        .tree-world { border-color: rgba(160, 220, 160, 0.1); }
+        .tree-world::before { background: var(--green); }
+        .tree-world .tree-dot { background: var(--green); color: var(--green); }
+        .tree-world .tree-name { color: var(--green); }
+        .tree-world .tree-tagline { color: #4a7a4a; }
+        .tree-world:hover { border-color: rgba(160, 220, 160, 0.2); box-shadow: 0 0 40px rgba(160, 220, 160, 0.05); }
+
+        @keyframes seedPulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.3); }
         }
 
-        @media (max-width: 640px) {
-            .slide { padding: 60px 20px; }
-            .slide h1 { font-size: 2em; }
-            .slide h2 { font-size: 1.3em; }
-            .convergence-grid { grid-template-columns: 1fr; }
+        /* ── Root line ── */
+        .roots {
+            text-align: center;
+            margin-top: 60px;
+            opacity: 0;
+            animation: fadeUp 1.5s ease 1s forwards;
         }
+
+        .roots .ubuntu {
+            font-size: 1.5em;
+            font-weight: 200;
+            letter-spacing: 0.2em;
+            color: #555;
+            margin-bottom: 12px;
+        }
+
+        .roots .meaning {
+            font-size: 0.95em;
+            color: #555;
+            font-style: italic;
+        }
+
+        .roots .rings {
+            margin-top: 32px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .root-ring {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            opacity: 0.5;
+        }
+
+        .root-line {
+            width: 30px;
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .roots .closing {
+            margin-top: 40px;
+            font-size: 0.8em;
+            color: #3a3a3a;
+            letter-spacing: 0.1em;
+        }
+
+        /* ── Three rings legend ── */
+        .kernel {
+            text-align: center;
+            margin-top: 48px;
+            opacity: 0;
+            animation: fadeUp 1.5s ease 1.3s forwards;
+        }
+
+        .kernel p {
+            font-size: 0.85em;
+            line-height: 2;
+        }
+
+        .k-intent { color: var(--gold); }
+        .k-reality { color: var(--teal); }
+        .k-gap { color: var(--blue); }
     </style>
 </head>
 <body>
 
 <canvas id="star-canvas"></canvas>
-<canvas id="trail-canvas"></canvas>
+<canvas id="root-canvas"></canvas>
 
-<!-- Navigation dots -->
-<div class="nav-dots" id="nav-dots"></div>
-<div class="scroll-hint">scroll</div>
-
-<!-- ═══════════════════ SLIDE 1: Hero ═══════════════════ -->
-<div class="slide" data-ring="teal" id="slide-0">
-    <h1>Zeus</h1>
-    <p style="color: var(--teal); font-style: italic; font-size: 1.2em;">
-        See the shape of your thinking.
-    </p>
-    <p class="dim" style="margin-top: 32px;">
-        What if every thought you have is one of three things?
-    </p>
-</div>
-
-<!-- ═══════════════════ SLIDE 2: The Three Rings ═══════════════════ -->
-<div class="slide" data-ring="gold" id="slide-1">
-    <h2 style="color: var(--gold);">Three Rings</h2>
-    <p>Every thought decomposes into want, fact, or question.</p>
-    <p class="dim">That's it. The whole engine.</p>
-
-    <div class="ring-row">
-        <div class="ring-item">
-            <div class="ring-dot" style="background: var(--gold); box-shadow: 0 0 12px var(--gold);"></div>
-            <span class="ring-label" style="color: var(--gold);">Intent</span>
-            <span class="dim" style="font-size: 0.8em;">what you want</span>
-        </div>
-        <div class="ring-item">
-            <div class="ring-dot" style="background: var(--teal); box-shadow: 0 0 12px var(--teal);"></div>
-            <span class="ring-label" style="color: var(--teal);">Reality</span>
-            <span class="dim" style="font-size: 0.8em;">what is</span>
-        </div>
-        <div class="ring-item">
-            <div class="ring-dot" style="background: var(--blue); box-shadow: 0 0 12px var(--blue);"></div>
-            <span class="ring-label" style="color: var(--blue);">Gap</span>
-            <span class="dim" style="font-size: 0.8em;">what's unresolved</span>
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════════════ SLIDE 3: Journalism ═══════════════════ -->
-<div class="slide" data-ring="pink" id="slide-2">
-    <h2 style="color: var(--pink);">Journalism</h2>
-    <p>Every investigative segment follows the same structure.</p>
-
-    <div class="decomp">
-        <span class="tag" style="color: var(--gold);">Intent</span>
-        <span class="desc">"Here's what they say they're doing"</span>
-        <span class="tag" style="color: var(--teal);">Reality</span>
-        <span class="desc">"Here's what's actually happening"</span>
-        <span class="tag" style="color: var(--blue);">Gap</span>
-        <span class="desc">"Here's the space between those two things"</span>
-        <span class="tag" style="color: var(--pink);">Cross</span>
-        <span class="desc">The clip that makes you laugh because you can see the gap</span>
+<div class="container">
+    <div class="title">
+        <h1>Ubuntu Trees</h1>
+        <p>I am because we are.</p>
     </div>
 
-    <p class="dim" style="margin-top: 24px;">
-        John Oliver has been doing this decomposition every week for a decade.
-        <br>He just doesn't have notation for it.
-    </p>
-</div>
+    <div class="forest">
+        <a href="slideshow.html" class="tree-card tree-money">
+            <div class="tree-dot"></div>
+            <span class="tree-name">Money Tree</span>
+            <span class="tree-tagline">The proof. Every industry decomposes the same way. Journalism. Racing. Medicine. Software. Same three rings.</span>
+            <span class="tree-ring-label">THE CONVERGENCE</span>
+        </a>
 
-<!-- ═══════════════════ SLIDE 4: Race Engineering ═══════════════════ -->
-<div class="slide" data-ring="red" id="slide-3">
-    <h2 style="color: var(--red);">Race Engineering</h2>
-    <p>Every stint on track is the same three questions.</p>
+        <a href="honeytree.html" class="tree-card tree-honey">
+            <div class="tree-dot"></div>
+            <span class="tree-name">Honey Tree</span>
+            <span class="tree-tagline">The feeling. Music. Love. War. Hope. Fear. The caterpillar through everything that makes us human.</span>
+            <span class="tree-ring-label">THE JOURNEY</span>
+        </a>
 
-    <div class="decomp">
-        <span class="tag" style="color: var(--gold);">Setup</span>
-        <span class="desc">What the driver wants the car to do</span>
-        <span class="tag" style="color: var(--teal);">Stint</span>
-        <span class="desc">What the car is actually doing — the telemetry</span>
-        <span class="tag" style="color: var(--blue);">Analysis</span>
-        <span class="desc">The gap between setup and stint. Where the time is.</span>
+        <a href="spirittree.html" class="tree-card tree-spirit">
+            <div class="tree-dot"></div>
+            <span class="tree-name">Spirit Tree</span>
+            <span class="tree-tagline">The music. Mosh to Handlebars to Kendrick. One caterpillar's songs. The rings light up as the music grows.</span>
+            <span class="tree-ring-label">THE THREAD</span>
+        </a>
+
+        <a href="worldtree.html" class="tree-card tree-world">
+            <div class="tree-dot"></div>
+            <span class="tree-name">World Tree</span>
+            <span class="tree-tagline">Your thread inside the world's thread. Fire. Language. War. The internet. Every gap in history is someone showing up anyway.</span>
+            <span class="tree-ring-label">THE CATERPILLAR</span>
+        </a>
     </div>
 
-    <p class="dim" style="margin-top: 24px;">
-        The RCEgram — the crew chief's diagnostic.<br>
-        Same three rings. Different domain.
-    </p>
-</div>
+    <div class="roots">
+        <div class="ubuntu">UBUNTU</div>
+        <div class="meaning">I am because we are.</div>
 
-<!-- ═══════════════════ SLIDE 5: Medicine ═══════════════════ -->
-<div class="slide" data-ring="green" id="slide-4">
-    <h2 style="color: var(--green);">Medicine</h2>
-    <p>Every patient encounter is the same decomposition.</p>
-
-    <div class="decomp">
-        <span class="tag" style="color: var(--gold);">Chief Complaint</span>
-        <span class="desc">What the patient wants — why they came in</span>
-        <span class="tag" style="color: var(--teal);">Assessment</span>
-        <span class="desc">What the clinician finds — labs, vitals, exam</span>
-        <span class="tag" style="color: var(--blue);">Plan</span>
-        <span class="desc">What's unresolved — the treatment to bridge the gap</span>
-    </div>
-
-    <p class="dim" style="margin-top: 24px;">
-        SOAP notes. Taught in every medical school.<br>
-        The structure was always there.
-    </p>
-</div>
-
-<!-- ═══════════════════ SLIDE 6: Logistics ═══════════════════ -->
-<div class="slide" data-ring="teal" id="slide-5">
-    <h2 style="color: var(--teal);">Logistics</h2>
-    <p>Every shipment is the same three things.</p>
-
-    <div class="decomp">
-        <span class="tag" style="color: var(--gold);">Order</span>
-        <span class="desc">What the customer wants — where and when</span>
-        <span class="tag" style="color: var(--teal);">Position</span>
-        <span class="desc">Where the goods actually are right now</span>
-        <span class="tag" style="color: var(--blue);">ETA Delta</span>
-        <span class="desc">The gap between promise and position. The delay. The reroute.</span>
-    </div>
-
-    <p class="dim" style="margin-top: 24px;">
-        If the system knew intent from reality from gap,<br>
-        you'd stop taking the Kansas detour.
-    </p>
-</div>
-
-<!-- ═══════════════════ SLIDE 7: Software ═══════════════════ -->
-<div class="slide" data-ring="blue" id="slide-6">
-    <h2 style="color: var(--blue);">Software</h2>
-    <p>Every bug report. Every feature request. Every standup.</p>
-
-    <div class="decomp">
-        <span class="tag" style="color: var(--gold);">Expected</span>
-        <span class="desc">What the code should do</span>
-        <span class="tag" style="color: var(--teal);">Actual</span>
-        <span class="desc">What the code actually does</span>
-        <span class="tag" style="color: var(--blue);">Steps to Reproduce</span>
-        <span class="desc">The gap — the path from one to the other</span>
-    </div>
-
-    <p class="dim" style="margin-top: 24px;">
-        Every bug template in the world<br>
-        is a three-ring decomposition.
-    </p>
-</div>
-
-<!-- ═══════════════════ SLIDE 8: The Convergence ═══════════════════ -->
-<div class="slide" data-ring="green" id="slide-7">
-    <h2 style="color: var(--green);">The Convergence</h2>
-    <p>Independent fields. Same kernel. No one coordinated this.</p>
-
-    <div class="convergence-grid">
-        <div class="convergence-card">
-            <div class="field" style="color: var(--pink);">Journalism</div>
-            <div class="mapping">
-                <span style="color: var(--gold);">Claim</span><br>
-                <span style="color: var(--teal);">Evidence</span><br>
-                <span style="color: var(--blue);">Exposé</span>
-            </div>
+        <div class="rings">
+            <div class="root-ring" style="background: var(--gold);"></div>
+            <div class="root-line"></div>
+            <div class="root-ring" style="background: var(--teal);"></div>
+            <div class="root-line"></div>
+            <div class="root-ring" style="background: var(--blue);"></div>
         </div>
-        <div class="convergence-card">
-            <div class="field" style="color: var(--red);">Racing</div>
-            <div class="mapping">
-                <span style="color: var(--gold);">Setup</span><br>
-                <span style="color: var(--teal);">Stint</span><br>
-                <span style="color: var(--blue);">Analysis</span>
-            </div>
-        </div>
-        <div class="convergence-card">
-            <div class="field" style="color: var(--green);">Medicine</div>
-            <div class="mapping">
-                <span style="color: var(--gold);">Complaint</span><br>
-                <span style="color: var(--teal);">Assessment</span><br>
-                <span style="color: var(--blue);">Plan</span>
-            </div>
-        </div>
-        <div class="convergence-card">
-            <div class="field" style="color: var(--teal);">Logistics</div>
-            <div class="mapping">
-                <span style="color: var(--gold);">Order</span><br>
-                <span style="color: var(--teal);">Position</span><br>
-                <span style="color: var(--blue);">ETA Delta</span>
-            </div>
-        </div>
-        <div class="convergence-card">
-            <div class="field" style="color: var(--blue);">Software</div>
-            <div class="mapping">
-                <span style="color: var(--gold);">Expected</span><br>
-                <span style="color: var(--teal);">Actual</span><br>
-                <span style="color: var(--blue);">Repro Steps</span>
-            </div>
-        </div>
-        <div class="convergence-card">
-            <div class="field" style="color: var(--gold);">You</div>
-            <div class="mapping">
-                <span style="color: var(--gold);">Want</span><br>
-                <span style="color: var(--teal);">Know</span><br>
-                <span style="color: var(--blue);">Don't know yet</span>
-            </div>
+
+        <div class="closing">
+            every tree grows from the same three rings
         </div>
     </div>
-</div>
 
-<!-- ═══════════════════ SLIDE 9: The Real Currency ═══════════════════ -->
-<div class="slide" data-ring="red" id="slide-8">
-    <h2 style="color: var(--red);">The Real Currency</h2>
-
-    <p style="line-height: 2.2;">
-        <span style="color: var(--gold);">McDonald's breakfast at midnight</span> wasn't a business model.<br>
-        It was a reason to be awake.
-    </p>
-    <p style="line-height: 2.2;">
-        <span style="color: var(--gold);">Pizza Hut buffets</span> weren't optimized.<br>
-        They were where your team went after the game.
-    </p>
-    <p style="line-height: 2.2;">
-        <span style="color: var(--gold);">Walmart at 2am</span> wasn't efficient.<br>
-        It was there when you needed it.
-    </p>
-
-    <p class="dim" style="margin-top: 24px; line-height: 2;">
-        Every one of these was killed by the same math:<br>
-        <span style="color: var(--red);">joy isn't a line item.</span>
-    </p>
-
-    <p style="color: var(--gold); margin-top: 24px;">
-        What if it was?
-    </p>
-</div>
-
-<!-- ═══════════════════ SLIDE 10: The I-80 ═══════════════════ -->
-<div class="slide" data-ring="gold" id="slide-9">
-    <h2 style="color: var(--gold);">I-80</h2>
-    <p>
-        If you wanted to drive from Omaha to Scottsbluff,<br>
-        would you detour through Kansas?
-    </p>
-    <p style="margin-top: 24px;">
-        Every system that guesses what you mean<br>
-        is taking the Kansas detour.
-    </p>
-    <p style="color: var(--teal); margin-top: 24px;">
-        Label it. Route it. I-80 the whole way.
-    </p>
-</div>
-
-<!-- ═══════════════════ SLIDE 11: The Thread ═══════════════════ -->
-<div class="slide" data-ring="green" id="slide-10">
-    <h2 style="color: var(--green);">The Thread</h2>
-    <p style="color: var(--green); line-height: 2.2;">
-        Your Gap is someone else's Reality.<br>
-        Their Intent fuels your Quest.<br>
-        The rings connect the help to the need.
-    </p>
-    <p class="dim" style="margin-top: 32px;">
-        The same notation that helps you see your own thinking<br>
-        lets the machine see it too. No guessing. No Kansas.
-    </p>
-    <p style="color: var(--teal); margin-top: 40px; font-style: italic;">
-        E Pluribus Unum
-    </p>
-    <p class="whisper" style="margin-top: 16px;">
-        Start writing. The rings will find you.
-    </p>
+    <div class="kernel">
+        <p>
+            <span class="k-intent">what you want</span> &middot;
+            <span class="k-reality">what is</span> &middot;
+            <span class="k-gap">what's unresolved</span>
+        </p>
+        <p style="color: #3a3a3a; margin-top: 16px; font-size: 0.8em;">
+            your gap is someone else's reality<br>
+            their intent fuels your quest<br>
+            the rings connect the help to the need
+        </p>
+    </div>
 </div>
 
 <script>
@@ -491,20 +332,20 @@
 const starCanvas = document.getElementById('star-canvas');
 const starCtx = starCanvas.getContext('2d');
 
-function resizeStars() {
+function resize() {
     starCanvas.width = window.innerWidth;
     starCanvas.height = window.innerHeight;
+    rootCanvas.width = window.innerWidth;
+    rootCanvas.height = window.innerHeight;
 }
-resizeStars();
-window.addEventListener('resize', resizeStars);
 
 const stars = [];
-for (let i = 0; i < 150; i++) {
+for (let i = 0; i < 120; i++) {
     stars.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
+        x: Math.random() * 2000,
+        y: Math.random() * 2000,
         r: Math.random() * 1.2 + 0.3,
-        a: Math.random() * 0.2 + 0.05,
+        a: Math.random() * 0.12 + 0.03,
         speed: Math.random() * 0.001 + 0.0003
     });
 }
@@ -512,6 +353,7 @@ for (let i = 0; i < 150; i++) {
 function drawStars(t) {
     starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
     for (const s of stars) {
+        if (s.x > starCanvas.width || s.y > starCanvas.height) continue;
         const pulse = Math.sin(t * s.speed + s.x) * 0.5 + 0.5;
         const alpha = s.a * (0.5 + pulse * 0.5);
         starCtx.beginPath();
@@ -521,212 +363,87 @@ function drawStars(t) {
     }
 }
 
-// ═══════════════════ YONDU TRAIL ═══════════════════
-const trailCanvas = document.getElementById('trail-canvas');
-const trailCtx = trailCanvas.getContext('2d');
+// ═══════════════════ ROOT LINES ═══════════════════
+// Draw faint lines between the tree cards — the root system
+const rootCanvas = document.getElementById('root-canvas');
+const rootCtx = rootCanvas.getContext('2d');
 
-function resizeTrail() {
-    trailCanvas.width = window.innerWidth;
-    trailCanvas.height = window.innerHeight;
-}
-resizeTrail();
-window.addEventListener('resize', resizeTrail);
+resize();
+window.addEventListener('resize', resize);
 
-const RING_COLORS = {
-    teal:  { r: 78,  g: 205, b: 196 },
-    gold:  { r: 255, g: 215, b: 0 },
-    blue:  { r: 91,  g: 141, b: 239 },
-    pink:  { r: 224, g: 123, b: 218 },
-    green: { r: 160, g: 220, b: 160 },
-    red:   { r: 255, g: 107, b: 107 },
-};
+const TREE_COLORS = [
+    { r: 78, g: 205, b: 196 },   // money - teal
+    { r: 255, g: 215, b: 0 },    // honey - gold
+    { r: 224, g: 123, b: 218 },  // spirit - pink
+    { r: 160, g: 220, b: 160 },  // world - green
+];
 
-// Trail state
-const trail = [];
-const MAX_TRAIL = 120;
-let arrowX = window.innerWidth / 2;
-let arrowY = window.innerHeight / 2;
-let targetX = arrowX;
-let targetY = arrowY;
-let currentColor = RING_COLORS.teal;
-let targetColor = RING_COLORS.teal;
+function drawRoots(time) {
+    rootCtx.clearRect(0, 0, rootCanvas.width, rootCanvas.height);
 
-// The arrow head tracks the active slide's center
-function updateArrowTarget() {
-    const slides = document.querySelectorAll('.slide');
-    const scrollY = window.scrollY;
-    const vh = window.innerHeight;
+    const cards = document.querySelectorAll('.tree-card');
+    if (cards.length < 2) return;
 
-    let activeSlide = null;
-    let minDist = Infinity;
-
-    slides.forEach(slide => {
-        const rect = slide.getBoundingClientRect();
-        const center = rect.top + rect.height / 2;
-        const dist = Math.abs(center - vh / 2);
-        if (dist < minDist) {
-            minDist = dist;
-            activeSlide = slide;
-        }
+    // Get center points of each card
+    const centers = [];
+    cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        centers.push({
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2
+        });
     });
 
-    if (activeSlide) {
-        const rect = activeSlide.getBoundingClientRect();
-        // Aim for the top-center of the active slide (just below the heading)
-        targetX = rect.left + rect.width / 2;
-        targetY = rect.top + rect.height * 0.3;
+    // Draw lines between all pairs — the root system
+    for (let i = 0; i < centers.length; i++) {
+        for (let j = i + 1; j < centers.length; j++) {
+            const a = centers[i];
+            const b = centers[j];
 
-        const ring = activeSlide.dataset.ring || 'teal';
-        targetColor = RING_COLORS[ring] || RING_COLORS.teal;
-    }
-}
+            // Blend colors
+            const ci = TREE_COLORS[i];
+            const cj = TREE_COLORS[j];
+            const mr = (ci.r + cj.r) / 2;
+            const mg = (ci.g + cj.g) / 2;
+            const mb = (ci.b + cj.b) / 2;
 
-function lerpColor(a, b, t) {
-    return {
-        r: a.r + (b.r - a.r) * t,
-        g: a.g + (b.g - a.g) * t,
-        b: a.b + (b.b - a.b) * t,
-    };
-}
+            // Pulse
+            const pulse = Math.sin(time * 0.0008 + i * 1.5 + j * 0.7) * 0.5 + 0.5;
+            const alpha = 0.03 + pulse * 0.04;
 
-function drawTrail(time) {
-    trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+            // Draw curved root line
+            const midX = (a.x + b.x) / 2 + Math.sin(time * 0.0003 + i) * 20;
+            const midY = (a.y + b.y) / 2 + Math.cos(time * 0.0004 + j) * 15;
 
-    // Smooth follow — Yondu's arrow tracks intent
-    const ease = 0.04;
-    arrowX += (targetX - arrowX) * ease;
-    arrowY += (targetY - arrowY) * ease;
-    currentColor = lerpColor(currentColor, targetColor, 0.03);
-
-    // Add gentle drift — the arrow isn't mechanical
-    const driftX = Math.sin(time * 0.0007) * 30;
-    const driftY = Math.cos(time * 0.0005) * 15;
-    const px = arrowX + driftX;
-    const py = arrowY + driftY;
-
-    // Sample into trail
-    trail.push({ x: px, y: py, t: time, color: { ...currentColor } });
-    if (trail.length > MAX_TRAIL) trail.shift();
-
-    if (trail.length < 3) return;
-
-    // Draw trail — line strip with fading alpha
-    for (let i = 1; i < trail.length; i++) {
-        const prev = trail[i - 1];
-        const curr = trail[i];
-        const life = i / trail.length; // 0 = oldest, 1 = newest
-        const alpha = life * life * 0.5; // quadratic fade — bright head, dim tail
-
-        const c = curr.color;
-
-        trailCtx.beginPath();
-        trailCtx.moveTo(prev.x, prev.y);
-        trailCtx.lineTo(curr.x, curr.y);
-        trailCtx.strokeStyle = `rgba(${c.r|0}, ${c.g|0}, ${c.b|0}, ${alpha})`;
-        trailCtx.lineWidth = 1 + life * 2;
-        trailCtx.lineCap = 'round';
-        trailCtx.stroke();
+            rootCtx.beginPath();
+            rootCtx.moveTo(a.x, a.y);
+            rootCtx.quadraticCurveTo(midX, midY, b.x, b.y);
+            rootCtx.strokeStyle = `rgba(${mr|0}, ${mg|0}, ${mb|0}, ${alpha})`;
+            rootCtx.lineWidth = 1;
+            rootCtx.stroke();
+        }
     }
 
-    // Arrow head glow
-    const head = trail[trail.length - 1];
-    const hc = head.color;
-    const gradient = trailCtx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 20);
-    gradient.addColorStop(0, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.6)`);
-    gradient.addColorStop(0.5, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.15)`);
-    gradient.addColorStop(1, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0)`);
-    trailCtx.beginPath();
-    trailCtx.arc(head.x, head.y, 20, 0, Math.PI * 2);
-    trailCtx.fillStyle = gradient;
-    trailCtx.fill();
+    // Draw dots at each center
+    centers.forEach((c, i) => {
+        const tc = TREE_COLORS[i];
+        const pulse = Math.sin(time * 0.001 + i * 2) * 0.5 + 0.5;
+        const alpha = 0.1 + pulse * 0.1;
 
-    // Core dot
-    trailCtx.beginPath();
-    trailCtx.arc(head.x, head.y, 3, 0, Math.PI * 2);
-    trailCtx.fillStyle = `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.9)`;
-    trailCtx.fill();
-}
-
-// ═══════════════════ SCROLL OBSERVATION ═══════════════════
-const slides = document.querySelectorAll('.slide');
-const navDots = document.getElementById('nav-dots');
-
-// Build nav dots
-slides.forEach((slide, i) => {
-    const dot = document.createElement('button');
-    dot.className = 'nav-dot';
-    dot.addEventListener('click', () => {
-        slide.scrollIntoView({ behavior: 'smooth' });
-    });
-    navDots.appendChild(dot);
-});
-
-const navDotEls = navDots.querySelectorAll('.nav-dot');
-
-// Intersection observer for slide visibility
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-        }
-    });
-}, { threshold: 0.3 });
-
-slides.forEach(slide => observer.observe(slide));
-
-// Active slide tracking
-function updateActiveSlide() {
-    const vh = window.innerHeight;
-    let activeIndex = 0;
-    let minDist = Infinity;
-
-    slides.forEach((slide, i) => {
-        const rect = slide.getBoundingClientRect();
-        const center = rect.top + rect.height / 2;
-        const dist = Math.abs(center - vh / 2);
-        if (dist < minDist) {
-            minDist = dist;
-            activeIndex = i;
-        }
-    });
-
-    navDotEls.forEach((dot, i) => {
-        dot.classList.toggle('active', i === activeIndex);
-        // Color the active dot with the slide's ring color
-        if (i === activeIndex) {
-            const ring = slides[i].dataset.ring || 'teal';
-            const c = RING_COLORS[ring] || RING_COLORS.teal;
-            dot.style.background = `rgb(${c.r}, ${c.g}, ${c.b})`;
-            dot.style.boxShadow = `0 0 8px rgba(${c.r}, ${c.g}, ${c.b}, 0.6)`;
-        } else {
-            dot.style.background = '';
-            dot.style.boxShadow = '';
-        }
+        rootCtx.beginPath();
+        rootCtx.arc(c.x, c.y, 3, 0, Math.PI * 2);
+        rootCtx.fillStyle = `rgba(${tc.r}, ${tc.g}, ${tc.b}, ${alpha})`;
+        rootCtx.fill();
     });
 }
 
-window.addEventListener('scroll', () => {
-    updateArrowTarget();
-    updateActiveSlide();
-
-    // Hide scroll hint after first scroll
-    const hint = document.querySelector('.scroll-hint');
-    if (window.scrollY > 50 && hint) {
-        hint.style.opacity = '0';
-        hint.style.transition = 'opacity 0.5s';
-    }
-});
-
-// ═══════════════════ ANIMATION LOOP ═══════════════════
+// ═══════════════════ ANIMATION ═══════════════════
 function animate(time) {
     drawStars(time);
-    drawTrail(time);
+    drawRoots(time);
     requestAnimationFrame(animate);
 }
 
-// Init
-updateArrowTarget();
-updateActiveSlide();
 requestAnimationFrame(animate);
 </script>
 

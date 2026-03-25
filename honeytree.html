@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zeus — The Caterpillar</title>
+    <meta name="description" content="A trip through everything that makes us human. The arrow always comes back.">
+    <meta property="og:title" content="Zeus — The Caterpillar">
+    <meta property="og:description" content="Music. Law. Love. War. Hope. Fear. The thread through all of it.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080816;
+            --gold: #ffd700;
+            --teal: #4ecdc4;
+            --blue: #5b8def;
+            --pink: #e07bda;
+            --green: #a0dca0;
+            --red: #ff6b6b;
+            --warm: #ff9944;
+            --dim: #444;
+            --whisper: #222;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: var(--bg);
+            color: #888;
+            overflow-x: hidden;
+        }
+
+        /* ── Canvases ── */
+        #trail-canvas, #star-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+        #star-canvas { z-index: 0; }
+        #trail-canvas { z-index: 2; }
+
+        /* ── Background temperature overlay ── */
+        #temper-bg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            transition: background 2s ease;
+        }
+
+        /* ── Slides ── */
+        .slide {
+            position: relative;
+            z-index: 1;
+            min-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 1.2s ease, transform 1.2s ease;
+        }
+
+        .slide.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .slide h1 {
+            font-size: 3.5em;
+            font-weight: 100;
+            letter-spacing: 0.2em;
+            color: #ccc;
+            margin-bottom: 16px;
+        }
+
+        .slide h2 {
+            font-size: 2.4em;
+            font-weight: 200;
+            letter-spacing: 0.15em;
+            margin-bottom: 20px;
+        }
+
+        .slide p {
+            max-width: 560px;
+            line-height: 1.9;
+            font-size: 1.05em;
+        }
+
+        .dim { color: #666; }
+        .whisper { color: #3a3a3a; font-size: 0.85em; }
+
+        /* ── Bracket notation examples ── */
+        .notation {
+            margin-top: 28px;
+            padding: 20px 32px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 1.05em;
+            line-height: 2.2;
+            text-align: left;
+            max-width: 520px;
+        }
+
+        .n-intent { color: var(--gold); }
+        .n-reality { color: var(--teal); }
+        .n-gap { color: var(--blue); }
+        .n-cross { color: var(--pink); }
+        .n-aether { color: var(--green); }
+        .n-pin { color: var(--red); }
+
+        /* ── Nav dots ── */
+        #nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: none;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .nav-dot.active {
+            transform: scale(1.4);
+        }
+
+        /* ── Scroll hint ── */
+        .scroll-hint {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: #555;
+            font-size: 0.8em;
+            letter-spacing: 0.1em;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        /* ── Cocoon ── */
+        .cocoon-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 40px auto;
+        }
+
+        .cocoon-shell {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid;
+            opacity: 0.15;
+            animation: breathe 4s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.1; }
+            50% { transform: scale(1.08); opacity: 0.2; }
+        }
+
+        /* ── Butterfly ── */
+        @keyframes emerge {
+            0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+            60% { opacity: 1; transform: scale(1.1) translateY(-5px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .butterfly {
+            animation: emerge 2s ease-out forwards;
+            animation-delay: 1s;
+            opacity: 0;
+        }
+
+        /* ── Slideshow link ── */
+        .link-tree {
+            display: inline-block;
+            margin-top: 40px;
+            padding: 12px 28px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.9em;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+        .link-tree:hover {
+            color: var(--teal);
+            border-color: var(--teal);
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+<div id="temper-bg"></div>
+<canvas id="star-canvas"></canvas>
+<canvas id="trail-canvas"></canvas>
+<div id="nav-dots"></div>
+<div class="scroll-hint">scroll to begin</div>
+
+<!-- ═══════════════════ THE CATERPILLAR ═══════════════════ -->
+
+<!-- 0: SILENCE -->
+<div class="slide" data-ring="teal" data-temper="rest" id="slide-0">
+    <p class="dim" style="font-size: 1.3em; letter-spacing: 0.15em;">
+        before words
+    </p>
+    <p class="whisper" style="margin-top: 40px;">
+        there was something you wanted to say
+    </p>
+</div>
+
+<!-- 1: MUSIC -->
+<div class="slide" data-ring="gold" data-temper="frolic" id="slide-1">
+    <h2 style="color: var(--gold);">Music</h2>
+    <p>The first language. Before grammar, before notation, before words.</p>
+    <p style="margin-top: 16px; color: var(--gold);">
+        You heard something and your body moved.
+    </p>
+    <div class="notation">
+        <span class="n-intent">*I want to feel that again*</span><br>
+        <span class="n-reality">{the bass hit and I forgot where I was}</span><br>
+        <span class="n-gap">[why does a chord change feel like coming home?]</span>
+    </div>
+</div>
+
+<!-- 2: LAW -->
+<div class="slide" data-ring="teal" data-temper="friction" id="slide-2">
+    <h2 style="color: var(--teal);">Law</h2>
+    <p>Someone drew a line and said this side is right.</p>
+    <div class="notation">
+        <span class="n-intent">*justice*</span><br>
+        <span class="n-reality">{the statute says one thing, the court says another}</span><br>
+        <span class="n-gap">[who decides when the line moves?]</span><br>
+        <span class="n-cross">^we made this up and then forgot we made it up^</span>
+    </div>
+</div>
+
+<!-- 3: HUMANS -->
+<div class="slide" data-ring="green" data-temper="wonder" id="slide-3">
+    <h2 style="color: var(--green);">Humans</h2>
+    <p>Seven billion variations of the same three questions.</p>
+    <div class="notation">
+        <span class="n-intent">*I want to be seen*</span><br>
+        <span class="n-reality">{I am here, right now, breathing}</span><br>
+        <span class="n-gap">[does anyone else feel this?]</span>
+    </div>
+    <p class="dim" style="margin-top: 20px;">
+        Yes. Everyone. Always.
+    </p>
+</div>
+
+<!-- 4: LOVE -->
+<div class="slide" data-ring="gold" data-temper="clarity" id="slide-4">
+    <h2 style="color: var(--gold);">Love</h2>
+    <p style="color: var(--gold);">The gap that closes itself.</p>
+    <div class="notation">
+        <span class="n-intent">*I want to stay*</span><br>
+        <span class="n-reality">{you're already here}</span><br>
+        <span class="n-aether">:the distance between us was never real:</span>
+    </div>
+</div>
+
+<!-- 5: WAR -->
+<div class="slide" data-ring="red" data-temper="dread" id="slide-5">
+    <h2 style="color: var(--red);">War</h2>
+    <p>What happens when the gap refuses to close.</p>
+    <div class="notation">
+        <span class="n-intent">*they need to stop*</span><br>
+        <span class="n-reality">{they won't}</span><br>
+        <span class="n-gap">[what are we willing to destroy to be right?]</span><br>
+        <span class="n-pin">vvNEVERAGAINvv</span>
+    </div>
+    <p class="dim" style="margin-top: 20px;">
+        We keep saying that.
+    </p>
+</div>
+
+<!-- 6: HOPE -->
+<div class="slide" data-ring="gold" data-temper="frolic" id="slide-6">
+    <h2 style="color: var(--gold);">Hope</h2>
+    <p>Intent without evidence. The bravest ring.</p>
+    <div class="notation">
+        <span class="n-intent">*it can be better*</span><br>
+        <span class="n-gap">[I don't know how yet]</span><br>
+        <span class="n-aether">:but I'm still here, which means something:</span>
+    </div>
+</div>
+
+<!-- 7: DOUBT -->
+<div class="slide" data-ring="blue" data-temper="friction" id="slide-7">
+    <h2 style="color: var(--blue);">Doubt</h2>
+    <p>The gap that grows instead of closing.</p>
+    <div class="notation">
+        <span class="n-gap">[what if I'm wrong about all of it?]</span><br>
+        <span class="n-reality">{the ground felt solid yesterday}</span><br>
+        <span class="n-cross">^doubt is the gap looking at itself^</span>
+    </div>
+</div>
+
+<!-- 8: FEAR -->
+<div class="slide" data-ring="red" data-temper="dread" id="slide-8">
+    <h2 style="color: var(--red);">Fear</h2>
+    <p>The gap you can't see the other side of.</p>
+    <div class="notation">
+        <span class="n-gap">[what's on the other side?]</span><br>
+        <span class="n-reality">{my hands are shaking}</span><br>
+        <span class="n-intent">*I don't want to go but I can't stay*</span>
+    </div>
+</div>
+
+<!-- 9: INTROSPECTION -->
+<div class="slide" data-ring="pink" data-temper="witness" id="slide-9">
+    <h2 style="color: var(--pink);">Introspection</h2>
+    <p style="color: var(--pink);">The cross-ring. Stepping outside to see yourself seeing.</p>
+    <div class="notation">
+        <span class="n-cross">^I've been scrolling through my own life looking for the pattern^</span><br>
+        <span class="n-aether">:it was always the same three things:</span><br>
+        <span class="n-cross">^want, fact, question^</span>
+    </div>
+</div>
+
+<!-- 10: CATERPILLAR -->
+<div class="slide" data-ring="green" data-temper="rest" id="slide-10">
+    <h2 style="color: var(--green);">The Caterpillar</h2>
+    <p>
+        Every one of these is you.<br>
+        Every one of these is everyone.
+    </p>
+    <p style="margin-top: 24px; color: var(--green);">
+        The caterpillar crawls through all of it.<br>
+        Music. Law. Love. War. Every human thread.<br>
+        The same three rings, over and over.
+    </p>
+    <p class="dim" style="margin-top: 24px;">
+        Not because someone designed it that way.<br>
+        Because that's how thinking works.
+    </p>
+</div>
+
+<!-- 11: COCOON -->
+<div class="slide" data-ring="pink" data-temper="witness" id="slide-11">
+    <h2 style="color: var(--pink); letter-spacing: 0.3em;">Cocoon</h2>
+
+    <div class="cocoon-container">
+        <div class="cocoon-shell" style="inset: 0; border-color: var(--gold);"></div>
+        <div class="cocoon-shell" style="inset: 15px; border-color: var(--teal); animation-delay: 0.5s;"></div>
+        <div class="cocoon-shell" style="inset: 30px; border-color: var(--blue); animation-delay: 1s;"></div>
+        <div class="cocoon-shell" style="inset: 45px; border-color: var(--pink); animation-delay: 1.5s;"></div>
+        <div class="cocoon-shell" style="inset: 60px; border-color: var(--green); animation-delay: 2s;"></div>
+        <div class="cocoon-shell" style="inset: 75px; border-color: var(--red); animation-delay: 2.5s;"></div>
+    </div>
+
+    <p class="whisper" style="margin-top: 8px;">
+        held breath
+    </p>
+</div>
+
+<!-- 12: BUTTERFLY -->
+<div class="slide" data-ring="gold" data-temper="clarity" id="slide-12">
+    <div class="butterfly">
+        <h1 style="color: var(--gold); font-size: 4em; font-weight: 100; letter-spacing: 0.3em;">
+            Butterfly
+        </h1>
+    </div>
+
+    <p class="butterfly" style="margin-top: 32px; color: var(--gold); font-size: 1.2em;">
+        What emerges when you let the notation<br>
+        decompose you.
+    </p>
+
+    <p class="butterfly dim" style="margin-top: 40px;">
+        The caterpillar didn't know<br>
+        it was the butterfly the whole time.
+    </p>
+
+    <p class="butterfly whisper" style="margin-top: 48px; letter-spacing: 0.2em;">
+        now it's your turn
+    </p>
+
+    <a href="spirittree.html" class="link-tree butterfly" style="color: var(--pink);" onmouseover="this.style.color='#e07bda'; this.style.borderColor='#e07bda'; this.style.boxShadow='0 0 20px rgba(224,123,218,0.1)';" onmouseout="this.style.color='var(--pink)'; this.style.borderColor='rgba(255,255,255,0.08)'; this.style.boxShadow='none';">
+        hear one caterpillar's music
+    </a>
+
+    <a href="slideshow.html" class="link-tree butterfly">
+        see the money tree
+    </a>
+
+    <a href="ubuntutrees.html" class="link-tree butterfly" style="color: #555; font-size: 0.85em;" onmouseover="this.style.color='#888';" onmouseout="this.style.color='#555';">
+        the forest
+    </a>
+</div>
+
+<script>
+// ═══════════════════ STARS ═══════════════════
+const starCanvas = document.getElementById('star-canvas');
+const starCtx = starCanvas.getContext('2d');
+
+function resizeStars() {
+    starCanvas.width = window.innerWidth;
+    starCanvas.height = window.innerHeight;
+}
+resizeStars();
+window.addEventListener('resize', resizeStars);
+
+const stars = [];
+for (let i = 0; i < 180; i++) {
+    stars.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight * 13, // spread across all slides
+        r: Math.random() * 1.2 + 0.3,
+        a: Math.random() * 0.15 + 0.03,
+        speed: Math.random() * 0.001 + 0.0003
+    });
+}
+
+function drawStars(t) {
+    starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+    const scrollY = window.scrollY;
+    for (const s of stars) {
+        // Parallax — stars move slower than scroll
+        const sy = s.y - scrollY * 0.3;
+        if (sy < -10 || sy > starCanvas.height + 10) continue;
+
+        const pulse = Math.sin(t * s.speed + s.x) * 0.5 + 0.5;
+        const alpha = s.a * (0.5 + pulse * 0.5);
+        starCtx.beginPath();
+        starCtx.arc(s.x, sy, s.r, 0, Math.PI * 2);
+        starCtx.fillStyle = `rgba(180, 190, 220, ${alpha})`;
+        starCtx.fill();
+    }
+}
+
+// ═══════════════════ TEMPER BACKGROUND ═══════════════════
+const temperBg = document.getElementById('temper-bg');
+const TEMPER_COLORS = {
+    rest:     'rgba(8, 8, 22, 1)',
+    frolic:   'rgba(12, 10, 24, 1)',
+    friction: 'rgba(18, 8, 16, 1)',
+    wonder:   'rgba(10, 12, 28, 1)',
+    clarity:  'rgba(10, 10, 20, 1)',
+    dread:    'rgba(22, 6, 14, 1)',
+    witness:  'rgba(6, 8, 18, 1)',
+};
+
+// ═══════════════════ YONDU TRAIL ═══════════════════
+const trailCanvas = document.getElementById('trail-canvas');
+const trailCtx = trailCanvas.getContext('2d');
+
+function resizeTrail() {
+    trailCanvas.width = window.innerWidth;
+    trailCanvas.height = window.innerHeight;
+}
+resizeTrail();
+window.addEventListener('resize', () => { resizeStars(); resizeTrail(); });
+
+const RING_COLORS = {
+    teal:  { r: 78,  g: 205, b: 196 },
+    gold:  { r: 255, g: 215, b: 0 },
+    blue:  { r: 91,  g: 141, b: 239 },
+    pink:  { r: 224, g: 123, b: 218 },
+    green: { r: 160, g: 220, b: 160 },
+    red:   { r: 255, g: 107, b: 107 },
+};
+
+const trail = [];
+const MAX_TRAIL = 150;
+let arrowX = window.innerWidth / 2;
+let arrowY = window.innerHeight / 2;
+let targetX = arrowX;
+let targetY = arrowY;
+let currentColor = RING_COLORS.teal;
+let targetColor = RING_COLORS.teal;
+
+function updateArrowTarget() {
+    const slides = document.querySelectorAll('.slide');
+    const vh = window.innerHeight;
+    let activeSlide = null;
+    let minDist = Infinity;
+
+    slides.forEach(slide => {
+        const rect = slide.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const dist = Math.abs(center - vh / 2);
+        if (dist < minDist) {
+            minDist = dist;
+            activeSlide = slide;
+        }
+    });
+
+    if (activeSlide) {
+        const rect = activeSlide.getBoundingClientRect();
+        targetX = rect.left + rect.width / 2;
+        targetY = rect.top + rect.height * 0.3;
+
+        const ring = activeSlide.dataset.ring || 'teal';
+        targetColor = RING_COLORS[ring] || RING_COLORS.teal;
+
+        // Update temper background
+        const temper = activeSlide.dataset.temper || 'rest';
+        temperBg.style.background = TEMPER_COLORS[temper] || TEMPER_COLORS.rest;
+    }
+}
+
+function lerpColor(a, b, t) {
+    return {
+        r: a.r + (b.r - a.r) * t,
+        g: a.g + (b.g - a.g) * t,
+        b: a.b + (b.b - a.b) * t,
+    };
+}
+
+function drawTrail(time) {
+    trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+
+    const ease = 0.03;
+    arrowX += (targetX - arrowX) * ease;
+    arrowY += (targetY - arrowY) * ease;
+    currentColor = lerpColor(currentColor, targetColor, 0.025);
+
+    // Gentler drift — the caterpillar meanders
+    // The caterpillar WANDERS — wide detours, not a straight line
+    const driftX = Math.sin(time * 0.0004) * 80 + Math.sin(time * 0.0011) * 35 + Math.cos(time * 0.0019) * 20;
+    const driftY = Math.cos(time * 0.0003) * 40 + Math.sin(time * 0.0009) * 25 + Math.cos(time * 0.0017) * 15;
+    const px = arrowX + driftX;
+    const py = arrowY + driftY;
+
+    trail.push({ x: px, y: py, t: time, color: { ...currentColor } });
+    if (trail.length > MAX_TRAIL) trail.shift();
+
+    if (trail.length < 3) return;
+
+    // Draw trail
+    for (let i = 1; i < trail.length; i++) {
+        const prev = trail[i - 1];
+        const curr = trail[i];
+        const life = i / trail.length;
+        const alpha = life * life * 0.4;
+
+        const c = curr.color;
+        trailCtx.beginPath();
+        trailCtx.moveTo(prev.x, prev.y);
+        trailCtx.lineTo(curr.x, curr.y);
+        trailCtx.strokeStyle = `rgba(${c.r|0}, ${c.g|0}, ${c.b|0}, ${alpha})`;
+        trailCtx.lineWidth = 0.8 + life * 2.5;
+        trailCtx.lineCap = 'round';
+        trailCtx.stroke();
+    }
+
+    // Arrow head glow
+    const head = trail[trail.length - 1];
+    const hc = head.color;
+    const gradient = trailCtx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 25);
+    gradient.addColorStop(0, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.5)`);
+    gradient.addColorStop(0.4, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.12)`);
+    gradient.addColorStop(1, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0)`);
+    trailCtx.beginPath();
+    trailCtx.arc(head.x, head.y, 25, 0, Math.PI * 2);
+    trailCtx.fillStyle = gradient;
+    trailCtx.fill();
+
+    // Core dot
+    trailCtx.beginPath();
+    trailCtx.arc(head.x, head.y, 2.5, 0, Math.PI * 2);
+    trailCtx.fillStyle = `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.9)`;
+    trailCtx.fill();
+}
+
+// ═══════════════════ SCROLL OBSERVATION ═══════════════════
+const slides = document.querySelectorAll('.slide');
+const navDots = document.getElementById('nav-dots');
+
+slides.forEach((slide, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot';
+    dot.addEventListener('click', () => {
+        slide.scrollIntoView({ behavior: 'smooth' });
+    });
+    navDots.appendChild(dot);
+});
+
+const navDotEls = navDots.querySelectorAll('.nav-dot');
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+        }
+    });
+}, { threshold: 0.25 });
+
+slides.forEach(slide => observer.observe(slide));
+
+function updateActiveSlide() {
+    const vh = window.innerHeight;
+    let activeIndex = 0;
+    let minDist = Infinity;
+
+    slides.forEach((slide, i) => {
+        const rect = slide.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const dist = Math.abs(center - vh / 2);
+        if (dist < minDist) {
+            minDist = dist;
+            activeIndex = i;
+        }
+    });
+
+    navDotEls.forEach((dot, i) => {
+        dot.classList.toggle('active', i === activeIndex);
+        if (i === activeIndex) {
+            const ring = slides[i].dataset.ring || 'teal';
+            const c = RING_COLORS[ring] || RING_COLORS.teal;
+            dot.style.background = `rgb(${c.r}, ${c.g}, ${c.b})`;
+            dot.style.boxShadow = `0 0 8px rgba(${c.r}, ${c.g}, ${c.b}, 0.6)`;
+        } else {
+            dot.style.background = '';
+            dot.style.boxShadow = '';
+        }
+    });
+}
+
+window.addEventListener('scroll', () => {
+    updateArrowTarget();
+    updateActiveSlide();
+
+    const hint = document.querySelector('.scroll-hint');
+    if (window.scrollY > 50 && hint) {
+        hint.style.opacity = '0';
+        hint.style.transition = 'opacity 0.5s';
+    }
+});
+
+// ═══════════════════ ANIMATION LOOP ═══════════════════
+function animate(time) {
+    drawStars(time);
+    drawTrail(time);
+    requestAnimationFrame(animate);
+}
+
+updateArrowTarget();
+updateActiveSlide();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>

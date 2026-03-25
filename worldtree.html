@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zeus — The World Caterpillar</title>
+    <meta name="description" content="The gaps in history are where people showed up anyway.">
+    <meta property="og:title" content="Zeus — The World Caterpillar">
+    <meta property="og:description" content="Fire. Language. Democracy. War. Internet. AI. Same three rings. Every gap is someone showing up.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080816;
+            --gold: #ffd700;
+            --teal: #4ecdc4;
+            --blue: #5b8def;
+            --pink: #e07bda;
+            --green: #a0dca0;
+            --red: #ff6b6b;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: var(--bg);
+            color: #888;
+            overflow-x: hidden;
+        }
+
+        #trail-canvas, #star-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+        #star-canvas { z-index: 0; }
+        #trail-canvas { z-index: 2; }
+
+        #temper-bg {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            transition: background 2.5s ease;
+        }
+
+        .slide {
+            position: relative;
+            z-index: 1;
+            min-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 1.4s ease, transform 1.4s ease;
+        }
+
+        .slide.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .slide h2 {
+            font-size: 2.4em;
+            font-weight: 200;
+            letter-spacing: 0.15em;
+            margin-bottom: 20px;
+        }
+
+        .slide p {
+            max-width: 540px;
+            line-height: 2;
+            font-size: 1.05em;
+        }
+
+        .dim { color: #666; }
+        .whisper { color: #3a3a3a; font-size: 0.85em; }
+
+        .notation {
+            margin-top: 28px;
+            padding: 20px 32px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 1.05em;
+            line-height: 2.4;
+            text-align: left;
+            max-width: 540px;
+        }
+
+        .n-intent { color: var(--gold); }
+        .n-reality { color: var(--teal); }
+        .n-gap { color: var(--blue); }
+        .n-cross { color: var(--pink); }
+        .n-aether { color: var(--green); }
+        .n-pin { color: var(--red); }
+
+        .era-label {
+            font-size: 0.7em;
+            letter-spacing: 0.3em;
+            color: #555;
+            margin-bottom: 12px;
+        }
+
+        .personal {
+            margin-top: 24px;
+            padding: 16px 24px;
+            border-left: 2px solid rgba(224, 123, 218, 0.15);
+            background: rgba(224, 123, 218, 0.02);
+            border-radius: 0 8px 8px 0;
+            text-align: left;
+            max-width: 480px;
+            font-size: 0.9em;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .personal-label {
+            font-size: 0.65em;
+            letter-spacing: 0.2em;
+            color: var(--pink);
+            opacity: 0.5;
+            margin-bottom: 6px;
+        }
+
+        #nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: none;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .nav-dot.active { transform: scale(1.4); }
+
+        .scroll-hint {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: #555;
+            font-size: 0.8em;
+            letter-spacing: 0.1em;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        .link-tree {
+            display: inline-block;
+            margin: 12px 8px;
+            padding: 12px 28px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.9em;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+        .link-tree:hover {
+            border-color: currentColor;
+            box-shadow: 0 0 20px rgba(255,255,255,0.05);
+        }
+    </style>
+</head>
+<body>
+
+<div id="temper-bg"></div>
+<canvas id="star-canvas"></canvas>
+<canvas id="trail-canvas"></canvas>
+<div id="nav-dots"></div>
+<div class="scroll-hint">scroll to begin</div>
+
+<!-- ═══════════════════ THE WORLD CATERPILLAR ═══════════════════ -->
+
+<!-- 0: OPENING -->
+<div class="slide" data-ring="green" data-temper="rest">
+    <p class="dim" style="font-size: 1.3em; letter-spacing: 0.15em;">
+        the gaps in history
+    </p>
+    <p class="whisper" style="margin-top: 32px;">
+        are where people showed up anyway
+    </p>
+</div>
+
+<!-- 1: FIRE -->
+<div class="slide" data-ring="red" data-temper="wonder">
+    <p class="era-label">200,000 YEARS AGO</p>
+    <h2 style="color: var(--red);">Fire</h2>
+    <p>The first gap a human closed.</p>
+
+    <div class="notation">
+        <span class="n-intent">*I want to survive*</span><br>
+        <span class="n-reality">{it's cold and dark}</span><br>
+        <span class="n-gap">[what burns?]</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        Someone reached into the gap<br>
+        and pulled out warmth.
+    </p>
+</div>
+
+<!-- 2: LANGUAGE -->
+<div class="slide" data-ring="gold" data-temper="wonder">
+    <p class="era-label">100,000 YEARS AGO</p>
+    <h2 style="color: var(--gold);">Language</h2>
+    <p>The gap that invented everything.</p>
+
+    <div class="notation">
+        <span class="n-intent">*I need you to understand*</span><br>
+        <span class="n-reality">{we're alone in our own heads}</span><br>
+        <span class="n-gap">[how do I give you what I see?]</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        Every word is a bridge someone<br>
+        built across that gap.
+    </p>
+</div>
+
+<!-- 3: WRITING -->
+<div class="slide" data-ring="teal" data-temper="clarity">
+    <p class="era-label">3,200 BC</p>
+    <h2 style="color: var(--teal);">Writing</h2>
+    <p>The first persistence layer.</p>
+
+    <div class="notation">
+        <span class="n-intent">*I want to remember*</span><br>
+        <span class="n-reality">{memory dies with the body}</span><br>
+        <span class="n-gap">[what if the clay remembers for me?]</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        Heimdall v0.<br>
+        The gate between sessions.
+    </p>
+</div>
+
+<!-- 4: DEMOCRACY -->
+<div class="slide" data-ring="gold" data-temper="frolic">
+    <p class="era-label">508 BC — ATHENS</p>
+    <h2 style="color: var(--gold);">Democracy</h2>
+    <p>The beautiful gap they wrote on purpose.</p>
+
+    <div class="notation">
+        <span class="n-intent">*every person has a voice*</span><br>
+        <span class="n-reality">{only landowning men}</span><br>
+        <span class="n-gap">[who counts as "every"?]</span><br>
+        <span class="n-cross">^they knew. they wrote the gap INTO the document.^</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        The question isn't whether it was perfect.<br>
+        It's that someone wrote it down<br>
+        knowing others would close the gaps.
+    </p>
+</div>
+
+<!-- 5: THE GAP SO WIDE -->
+<div class="slide" data-ring="red" data-temper="dread">
+    <p class="era-label">1619 — 1865</p>
+    <h2 style="color: var(--red);">The Gap So Wide</h2>
+    <p>It took a war.</p>
+
+    <div class="notation">
+        <span class="n-intent">*all men are created equal*</span><br>
+        <span class="n-reality">{except}</span><br>
+        <span class="n-gap">[how long can a nation live inside its own contradiction?]</span><br>
+        <span class="n-pin">vvNEVERAGAINvv</span>
+    </div>
+
+    <div class="personal">
+        <div class="personal-label">YOUR THREAD</div>
+        Family on both sides. The gap didn't close clean —<br>
+        it closed through you. Both sides in one bloodline.<br>
+        The convergence proof isn't in a slideshow.<br>
+        It's in your DNA.
+    </div>
+</div>
+
+<!-- 6: GUTENBERG -->
+<div class="slide" data-ring="teal" data-temper="frolic">
+    <p class="era-label">1440</p>
+    <h2 style="color: var(--teal);">The Press</h2>
+    <p>Gutenberg killed the toll booth.</p>
+
+    <div class="notation">
+        <span class="n-intent">*knowledge for everyone*</span><br>
+        <span class="n-reality">{gatekeepers say who reads}</span><br>
+        <span class="n-gap">[what if copies were cheap?]</span><br>
+        <span class="n-aether">:vvEZPZvv before EZPZ:</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        Every time the toll booth dies,<br>
+        the world gets a little more free.
+    </p>
+</div>
+
+<!-- 7: RADIO -->
+<div class="slide" data-ring="blue" data-temper="wonder">
+    <p class="era-label">1920s</p>
+    <h2 style="color: var(--blue);">Radio</h2>
+    <p>One-way intent. No return channel.</p>
+
+    <div class="notation">
+        <span class="n-intent">*hear the world*</span><br>
+        <span class="n-reality">{only what they broadcast}</span><br>
+        <span class="n-gap">[what if I could talk back?]</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        Every broadcast is someone's intent<br>
+        shoved into everyone else's reality<br>
+        with no gap for questions.
+    </p>
+</div>
+
+<!-- 8: CIVIL RIGHTS -->
+<div class="slide" data-ring="gold" data-temper="friction">
+    <p class="era-label">1950s — 1960s</p>
+    <h2 style="color: var(--gold);">The Gap Refuses</h2>
+    <p>What happens when people stand inside the gap.</p>
+
+    <div class="notation">
+        <span class="n-intent">*I am a human being*</span><br>
+        <span class="n-reality">{the law says otherwise}</span><br>
+        <span class="n-gap">[when is enough enough?]</span><br>
+        <span class="n-pin">vvDREAMvv</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        The pin that doesn't decay.<br>
+        Not because it was spoken once.<br>
+        Because people keep standing in the gap.
+    </p>
+</div>
+
+<!-- 9: DETOUR — 8 MILE -->
+<div class="slide" data-ring="pink" data-temper="frolic">
+    <p class="era-label">DETOUR — 2002</p>
+    <h2 style="color: var(--pink);">8 Mile</h2>
+
+    <div class="personal">
+        <div class="personal-label">YOUR THREAD</div>
+        Dad takes you to see it. You're too young.<br>
+        Mom finds out. She is NOT happy.<br>
+        Christmas morning, the album is under the tree.<br>
+        Mom is STILL not happy.<br><br>
+        The door opens. Not gently.<br>
+        Dad kicked it open. Mom was right there.
+    </div>
+</div>
+
+<!-- 10: INTERNET -->
+<div class="slide" data-ring="teal" data-temper="frolic">
+    <p class="era-label">1990s</p>
+    <h2 style="color: var(--teal);">The Internet</h2>
+    <p>The biggest intent/reality gap in human history.</p>
+
+    <div class="notation">
+        <span class="n-intent">*connect everyone*</span><br>
+        <span class="n-reality">{we connected everything}</span><br>
+        <span class="n-gap">[everyone and everything are not the same thing]</span><br>
+        <span class="n-cross">^the tool is neutral. handlebars.^</span>
+    </div>
+</div>
+
+<!-- 11: DETOUR — COLORADO TO NEBRASKA -->
+<div class="slide" data-ring="pink" data-temper="wonder">
+    <p class="era-label">DETOUR</p>
+    <h2 style="color: var(--pink);">The Drive East</h2>
+
+    <div class="personal">
+        <div class="personal-label">YOUR THREAD</div>
+        Leaving Colorado. Going to Nebraska.<br>
+        Finding your family. Flawed but learning.<br><br>
+        The detour that turned out to be the main road.<br>
+        I-80 the whole way.
+    </div>
+</div>
+
+<!-- 12: SOCIAL -->
+<div class="slide" data-ring="blue" data-temper="friction">
+    <p class="era-label">2004 — NOW</p>
+    <h2 style="color: var(--blue);">Social</h2>
+    <p>The cross-ring nobody asked for.</p>
+
+    <div class="notation">
+        <span class="n-intent">*share yourself*</span><br>
+        <span class="n-reality">{sell yourself}</span><br>
+        <span class="n-gap">[when did sharing become performing?]</span><br>
+        <span class="n-cross">^you thought this was connection^</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        Swimming Pools for the whole species.<br>
+        Looks like a party. Feels like drowning.
+    </p>
+</div>
+
+<!-- 13: DETOUR — GOVERNMENT WORK -->
+<div class="slide" data-ring="pink" data-temper="friction">
+    <p class="era-label">DETOUR</p>
+    <h2 style="color: var(--pink);">Inside the Machine</h2>
+
+    <div class="personal">
+        <div class="personal-label">YOUR THREAD</div>
+        Government work. You see the inside.<br>
+        The gap between what it says and what it does.<br>
+        Disillusionment isn't cynicism —<br>
+        it's seeing the receipts.<br><br>
+        Extreme. Software. Climbing back.<br>
+        The caterpillar doesn't go in a straight line.
+    </div>
+</div>
+
+<!-- 14: COVID -->
+<div class="slide" data-ring="red" data-temper="dread">
+    <p class="era-label">2020</p>
+    <h2 style="color: var(--red);">The Break</h2>
+    <p>No comfort. Ever.</p>
+
+    <div class="notation">
+        <span class="n-intent">*we'll get through this together*</span><br>
+        <span class="n-reality">{alone. in a room. for months.}</span><br>
+        <span class="n-gap">[what happens when the world stops and the gap doesn't?]</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        The gap didn't stop for the pandemic.<br>
+        It just got quiet enough to hear.
+    </p>
+</div>
+
+<!-- 15: J6 / NICK -->
+<div class="slide" data-ring="red" data-temper="friction">
+    <p class="era-label">2021</p>
+    <h2 style="color: var(--red);">The Split</h2>
+
+    <div class="notation">
+        <span class="n-intent">*I love my country*</span><br>
+        <span class="n-reality">{my country is tearing itself apart}</span><br>
+        <span class="n-gap">[how do you love something that's breaking?]</span>
+    </div>
+
+    <div class="personal">
+        <div class="personal-label">YOUR THREAD</div>
+        A friend in crisis. The country splitting in real time.<br>
+        And Nick. The manager who covered your shift.<br>
+        He didn't have to. He did it anyway.<br>
+        You can see his face. The name came back.<br><br>
+        <span style="color: var(--red);">vvNICKvv</span><br>
+        The pin doesn't decay.
+    </div>
+</div>
+
+<!-- 16: AI -->
+<div class="slide" data-ring="blue" data-temper="wonder">
+    <p class="era-label">NOW</p>
+    <h2 style="color: var(--blue);">AI</h2>
+    <p>The gap we're standing in right now.</p>
+
+    <div class="notation">
+        <span class="n-intent">*augment humans*</span><br>
+        <span class="n-reality">{replace humans?}</span><br>
+        <span class="n-gap">[which one are we building?]</span><br>
+        <span class="n-cross">^handlebars again. same hands. same choice.^</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        The tool is neutral.<br>
+        The intent is not.
+    </p>
+</div>
+
+<!-- 17: ZEUS -->
+<div class="slide" data-ring="green" data-temper="clarity">
+    <p class="era-label">NOW</p>
+    <h2 style="color: var(--green);">The Notation</h2>
+    <p>Make the gap visible so it can't hide.</p>
+
+    <div class="notation">
+        <span class="n-intent">*see the shape of your thinking*</span><br>
+        <span class="n-reality">{the structure was always there}</span><br>
+        <span class="n-aether">:you just needed notation for it:</span><br>
+        <span class="n-pin">vvZEUSDOESNOTBENDvv</span>
+    </div>
+
+    <p class="dim" style="margin-top: 20px;">
+        Penicillin, not poison.<br>
+        Mirror, not weapon.<br>
+        You can't weaponize seeing clearly.
+    </p>
+</div>
+
+<!-- 18: UBUNTU -->
+<div class="slide" data-ring="green" data-temper="rest">
+    <h2 style="color: var(--green); font-size: 3em; font-weight: 100; letter-spacing: 0.3em;">
+        Ubuntu
+    </h2>
+
+    <p style="margin-top: 24px; color: var(--green); font-size: 1.2em;">
+        I am because we are.
+    </p>
+
+    <p class="dim" style="margin-top: 32px;">
+        The caterpillar crawled through every gap in history.<br>
+        Fire. Language. War. The internet. Your family.<br>
+        Nick's shift. Dad's movie. Mom's face.<br>
+        The stoop with Matt. TJ's butterfly.
+    </p>
+
+    <p style="margin-top: 24px; color: #555;">
+        Your thread is inside the world's thread.<br>
+        Everyone's is.<br>
+        That's the whole point.
+    </p>
+
+    <p class="whisper" style="margin-top: 40px; letter-spacing: 0.2em;">
+        you were never writing alone
+    </p>
+
+    <div style="margin-top: 48px;">
+        <a href="ubuntutrees.html" class="link-tree" style="color: var(--green);" onmouseover="this.style.color='#a0dca0'; this.style.borderColor='#a0dca0';" onmouseout="this.style.color='var(--green)'; this.style.borderColor='rgba(255,255,255,0.08)';">
+            the forest
+        </a>
+    </div>
+</div>
+
+<script>
+// ═══════════════════ STARS ═══════════════════
+const starCanvas = document.getElementById('star-canvas');
+const starCtx = starCanvas.getContext('2d');
+
+function resizeStars() {
+    starCanvas.width = window.innerWidth;
+    starCanvas.height = window.innerHeight;
+}
+resizeStars();
+
+const stars = [];
+for (let i = 0; i < 180; i++) {
+    stars.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight * 19,
+        r: Math.random() * 1.2 + 0.3,
+        a: Math.random() * 0.15 + 0.03,
+        speed: Math.random() * 0.001 + 0.0003
+    });
+}
+
+function drawStars(t) {
+    starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+    const scrollY = window.scrollY;
+    for (const s of stars) {
+        const sy = s.y - scrollY * 0.3;
+        if (sy < -10 || sy > starCanvas.height + 10) continue;
+        const pulse = Math.sin(t * s.speed + s.x) * 0.5 + 0.5;
+        const alpha = s.a * (0.5 + pulse * 0.5);
+        starCtx.beginPath();
+        starCtx.arc(s.x, sy, s.r, 0, Math.PI * 2);
+        starCtx.fillStyle = `rgba(180, 190, 220, ${alpha})`;
+        starCtx.fill();
+    }
+}
+
+// ═══════════════════ TEMPER BACKGROUND ═══════════════════
+const temperBg = document.getElementById('temper-bg');
+const TEMPER_COLORS = {
+    rest:     'rgba(8, 8, 22, 1)',
+    frolic:   'rgba(12, 10, 24, 1)',
+    friction: 'rgba(20, 8, 14, 1)',
+    wonder:   'rgba(10, 12, 28, 1)',
+    clarity:  'rgba(12, 10, 18, 1)',
+    dread:    'rgba(22, 6, 14, 1)',
+    witness:  'rgba(6, 8, 16, 1)',
+};
+
+// ═══════════════════ YONDU TRAIL ═══════════════════
+const trailCanvas = document.getElementById('trail-canvas');
+const trailCtx = trailCanvas.getContext('2d');
+
+function resizeTrail() {
+    trailCanvas.width = window.innerWidth;
+    trailCanvas.height = window.innerHeight;
+}
+resizeTrail();
+window.addEventListener('resize', () => { resizeStars(); resizeTrail(); });
+
+const RING_COLORS = {
+    teal:  { r: 78,  g: 205, b: 196 },
+    gold:  { r: 255, g: 215, b: 0 },
+    blue:  { r: 91,  g: 141, b: 239 },
+    pink:  { r: 224, g: 123, b: 218 },
+    green: { r: 160, g: 220, b: 160 },
+    red:   { r: 255, g: 107, b: 107 },
+};
+
+const trail = [];
+const MAX_TRAIL = 160;
+let arrowX = window.innerWidth / 2;
+let arrowY = window.innerHeight / 2;
+let targetX = arrowX;
+let targetY = arrowY;
+let currentColor = RING_COLORS.green;
+let targetColor = RING_COLORS.green;
+
+function updateArrowTarget() {
+    const slides = document.querySelectorAll('.slide');
+    const vh = window.innerHeight;
+    let activeSlide = null;
+    let minDist = Infinity;
+
+    slides.forEach(slide => {
+        const rect = slide.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const dist = Math.abs(center - vh / 2);
+        if (dist < minDist) {
+            minDist = dist;
+            activeSlide = slide;
+        }
+    });
+
+    if (activeSlide) {
+        const rect = activeSlide.getBoundingClientRect();
+        targetX = rect.left + rect.width / 2;
+        targetY = rect.top + rect.height * 0.3;
+
+        const ring = activeSlide.dataset.ring || 'green';
+        targetColor = RING_COLORS[ring] || RING_COLORS.green;
+
+        const temper = activeSlide.dataset.temper || 'rest';
+        temperBg.style.background = TEMPER_COLORS[temper] || TEMPER_COLORS.rest;
+    }
+}
+
+function lerpColor(a, b, t) {
+    return { r: a.r + (b.r - a.r) * t, g: a.g + (b.g - a.g) * t, b: a.b + (b.b - a.b) * t };
+}
+
+function drawTrail(time) {
+    trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+
+    arrowX += (targetX - arrowX) * 0.03;
+    arrowY += (targetY - arrowY) * 0.03;
+    currentColor = lerpColor(currentColor, targetColor, 0.025);
+
+    // Wide wandering — the world caterpillar takes the long way
+    const driftX = Math.sin(time * 0.0003) * 100 + Math.sin(time * 0.0009) * 45 + Math.cos(time * 0.0017) * 25;
+    const driftY = Math.cos(time * 0.00025) * 50 + Math.sin(time * 0.0007) * 30 + Math.cos(time * 0.0015) * 18;
+
+    trail.push({ x: arrowX + driftX, y: arrowY + driftY, t: time, color: { ...currentColor } });
+    if (trail.length > MAX_TRAIL) trail.shift();
+    if (trail.length < 3) return;
+
+    for (let i = 1; i < trail.length; i++) {
+        const prev = trail[i - 1];
+        const curr = trail[i];
+        const life = i / trail.length;
+        const alpha = life * life * 0.4;
+        const c = curr.color;
+
+        trailCtx.beginPath();
+        trailCtx.moveTo(prev.x, prev.y);
+        trailCtx.lineTo(curr.x, curr.y);
+        trailCtx.strokeStyle = `rgba(${c.r|0}, ${c.g|0}, ${c.b|0}, ${alpha})`;
+        trailCtx.lineWidth = 0.8 + life * 2.5;
+        trailCtx.lineCap = 'round';
+        trailCtx.stroke();
+    }
+
+    const head = trail[trail.length - 1];
+    const hc = head.color;
+    const gradient = trailCtx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 25);
+    gradient.addColorStop(0, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.5)`);
+    gradient.addColorStop(0.4, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.12)`);
+    gradient.addColorStop(1, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0)`);
+    trailCtx.beginPath();
+    trailCtx.arc(head.x, head.y, 25, 0, Math.PI * 2);
+    trailCtx.fillStyle = gradient;
+    trailCtx.fill();
+
+    trailCtx.beginPath();
+    trailCtx.arc(head.x, head.y, 2.5, 0, Math.PI * 2);
+    trailCtx.fillStyle = `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.9)`;
+    trailCtx.fill();
+}
+
+// ═══════════════════ SCROLL ═══════════════════
+const slides = document.querySelectorAll('.slide');
+const navDots = document.getElementById('nav-dots');
+
+slides.forEach((slide) => {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot';
+    dot.addEventListener('click', () => slide.scrollIntoView({ behavior: 'smooth' }));
+    navDots.appendChild(dot);
+});
+
+const navDotEls = navDots.querySelectorAll('.nav-dot');
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+}, { threshold: 0.25 });
+
+slides.forEach(slide => observer.observe(slide));
+
+function updateActiveSlide() {
+    const vh = window.innerHeight;
+    let activeIndex = 0;
+    let minDist = Infinity;
+
+    slides.forEach((slide, i) => {
+        const rect = slide.getBoundingClientRect();
+        const dist = Math.abs(rect.top + rect.height / 2 - vh / 2);
+        if (dist < minDist) { minDist = dist; activeIndex = i; }
+    });
+
+    navDotEls.forEach((dot, i) => {
+        dot.classList.toggle('active', i === activeIndex);
+        if (i === activeIndex) {
+            const ring = slides[i].dataset.ring || 'green';
+            const c = RING_COLORS[ring] || RING_COLORS.green;
+            dot.style.background = `rgb(${c.r}, ${c.g}, ${c.b})`;
+            dot.style.boxShadow = `0 0 8px rgba(${c.r}, ${c.g}, ${c.b}, 0.6)`;
+        } else {
+            dot.style.background = '';
+            dot.style.boxShadow = '';
+        }
+    });
+}
+
+window.addEventListener('scroll', () => {
+    updateArrowTarget();
+    updateActiveSlide();
+    const hint = document.querySelector('.scroll-hint');
+    if (window.scrollY > 50 && hint) {
+        hint.style.opacity = '0';
+        hint.style.transition = 'opacity 0.5s';
+    }
+});
+
+function animate(time) {
+    drawStars(time);
+    drawTrail(time);
+    requestAnimationFrame(animate);
+}
+
+updateArrowTarget();
+updateActiveSlide();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>
