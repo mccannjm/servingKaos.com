@@ -324,7 +324,76 @@
     </div>
 </div>
 
-<!-- 8: THE PATTERN -->
+<!-- 8: TECHNICAL — the architecture of hiding vs showing -->
+<div class="slide">
+    <div class="medium" style="color: var(--teal);">UNDER THE HOOD</div>
+    <p class="small">Same input. Different architecture. Different intent.</p>
+</div>
+
+<!-- 8b: WHAT THEY BUILD -->
+<div class="slide">
+    <div class="medium" style="color: var(--corp); font-size: 1.5em;">What Facebook does with "I love my dog"</div>
+
+    <div class="broken means" style="margin-top: 20px; font-size: 0.95em;">
+        <span style="color: #666;">1.</span> <span class="corp-voice">NLP sentiment: positive (0.94)</span><br>
+        <span style="color: #666;">2.</span> <span class="corp-voice">Topic: pets → ad category 287</span><br>
+        <span style="color: #666;">3.</span> <span class="corp-voice">Engagement prediction: share probability 0.67</span><br>
+        <span style="color: #666;">4.</span> <span class="corp-voice">Cross-reference: user also searched "vet near me"</span><br>
+        <span style="color: #666;">5.</span> <span class="corp-voice">Serve: PetSmart ad, BarkBox ad, anxiety medication ad</span><br>
+        <span style="color: #666;">6.</span> <span class="corp-voice">A/B test which ad placement gets more clicks</span><br>
+        <span style="color: #666;">7.</span> <span class="corp-voice">Store: interaction graph, dwell time, scroll velocity</span><br>
+        <span style="color: #666;">8.</span> <span class="corp-voice">Sell: behavioral profile to 347 partners</span>
+    </div>
+
+    <p class="whisper">8 steps. None of them are for you.</p>
+</div>
+
+<!-- 8c: WHAT ZEUS DOES -->
+<div class="slide">
+    <div class="medium" style="color: var(--gold); font-size: 1.5em;">What Zeus does with "I love my dog"</div>
+
+    <div class="broken" style="background: rgba(255,215,0,0.03); border: 1px solid rgba(255,215,0,0.12); margin-top: 20px; font-size: 0.95em;">
+        <span style="color: #666;">1.</span> <span class="n-intent">Intent ring. Gold dot appears in your constellation.</span>
+    </div>
+
+    <p class="whisper" style="margin-top: 16px;">1 step. It's yours. Nobody else sees it.</p>
+</div>
+
+<!-- 8d: THE STACK -->
+<div class="slide">
+    <div class="medium" style="color: var(--teal); font-size: 1.4em;">The Stack</div>
+
+    <div class="broken means" style="margin-top: 20px; font-size: 0.95em; text-align: center;">
+        <span class="corp-voice" style="font-size: 1.1em;">Typical "smart" app</span><br><br>
+        <span style="color: #555;">React Native — 300MB</span><br>
+        <span style="color: #555;">GraphQL + REST + WebSocket</span><br>
+        <span style="color: #555;">ML pipeline (sentiment, topic, entity, intent)</span><br>
+        <span style="color: #555;">Ad auction engine</span><br>
+        <span style="color: #555;">Behavioral tracking SDK</span><br>
+        <span style="color: #555;">A/B testing framework</span><br>
+        <span style="color: #555;">Analytics dashboard (for them, not you)</span><br>
+        <span style="color: #555;">14,000 word privacy policy</span><br>
+        <span style="color: #555;">347 data partners</span>
+    </div>
+
+    <div style="font-size: 2em; color: #333; margin: 16px 0;">vs</div>
+
+    <div class="broken" style="background: rgba(255,215,0,0.03); border: 1px solid rgba(255,215,0,0.12); font-size: 0.95em; text-align: center;">
+        <span class="n-intent" style="font-size: 1.1em;">Zeus</span><br><br>
+        <span style="color: var(--teal);">Bracket → Ring → Constellation</span><br>
+        <span style="color: #555;">Your text. Your rings. Your machine.</span><br>
+        <span style="color: #555;">No server. No account. No tracking.</span><br>
+        <span style="color: #555;">One HTML file = one tree.</span><br>
+        <span style="color: #555;">Zero data partners.</span>
+    </div>
+
+    <p class="whisper" style="margin-top: 16px;">
+        the complexity isn't the technology.<br>
+        the complexity is hiding what you're doing with it.
+    </p>
+</div>
+
+<!-- 9: THE PATTERN -->
 <div class="slide">
     <div class="medium" style="color: var(--red);">THE PATTERN</div>
 
