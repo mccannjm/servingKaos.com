@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAISE HELL PRAISE DALE</title>
+    <meta name="description" content="The rainbow needs the black. Same three rings. Maximum volume.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080816;
+            --gold: #ffd700;
+            --teal: #4ecdc4;
+            --blue: #5b8def;
+            --pink: #e07bda;
+            --green: #a0dca0;
+            --red: #ff6b6b;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: var(--bg);
+            color: #888;
+            overflow-x: hidden;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── LOUD slides ── */
+        .slide {
+            position: relative;
+            z-index: 1;
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 40px;
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .slide.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .big {
+            font-size: 4em;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+
+        .medium {
+            font-size: 2em;
+            font-weight: 200;
+            letter-spacing: 0.1em;
+            margin-top: 12px;
+        }
+
+        .small {
+            font-size: 1em;
+            color: #666;
+            margin-top: 16px;
+            line-height: 1.8;
+            max-width: 500px;
+        }
+
+        .whisper {
+            color: #555;
+            font-size: 0.85em;
+            margin-top: 20px;
+        }
+
+        .notation {
+            margin-top: 20px;
+            padding: 16px 28px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            font-size: 1.1em;
+            line-height: 2.2;
+            text-align: left;
+            max-width: 520px;
+        }
+
+        .n-intent { color: var(--gold); }
+        .n-reality { color: var(--teal); }
+        .n-gap { color: var(--blue); }
+        .n-cross { color: var(--pink); }
+        .n-pin { color: var(--red); }
+        .n-aether { color: var(--green); }
+
+        /* ── VS divider ── */
+        .vs {
+            font-size: 5em;
+            font-weight: 100;
+            color: #333;
+            margin: 0 20px;
+        }
+
+        .vs-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .vs-item {
+            font-size: 1.6em;
+            font-weight: 300;
+            padding: 16px 24px;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+        }
+
+        /* ── Flash effect for hype slides ── */
+        @keyframes flash {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .flash-text {
+            animation: flash 1.5s ease-in-out infinite;
+        }
+
+        /* ── Rainbow border pulse ── */
+        @keyframes rainbow {
+            0% { border-color: var(--red); }
+            16% { border-color: var(--gold); }
+            33% { border-color: var(--green); }
+            50% { border-color: var(--teal); }
+            66% { border-color: var(--blue); }
+            83% { border-color: var(--pink); }
+            100% { border-color: var(--red); }
+        }
+
+        .rainbow-box {
+            border: 2px solid var(--red);
+            animation: rainbow 4s linear infinite;
+            padding: 24px 32px;
+            border-radius: 12px;
+            margin-top: 24px;
+            max-width: 500px;
+        }
+
+        .link-tree {
+            display: inline-block;
+            margin: 12px 8px;
+            padding: 12px 28px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        .link-tree:hover {
+            color: var(--red);
+            border-color: var(--red);
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.15);
+        }
+
+        #nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: none;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .nav-dot.active { transform: scale(1.4); }
+
+        .scroll-hint {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: #555;
+            font-size: 0.8em;
+            animation: flash 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="star-canvas"></canvas>
+<div id="nav-dots"></div>
+<div class="scroll-hint">SEND IT</div>
+
+<!-- ═══════════════ THE DALE PAGE ═══════════════ -->
+
+<!-- 0: TITLE -->
+<div class="slide">
+    <div class="big" style="color: var(--red);">RAISE HELL</div>
+    <div class="big" style="color: var(--gold);">PRAISE DALE</div>
+    <p class="whisper">the rainbow needs the black</p>
+</div>
+
+<!-- 1: FEUER FREI -->
+<div class="slide">
+    <div class="big flash-text" style="color: var(--red); font-size: 3.5em;">FEUER FREI</div>
+    <p class="small">Dad takes you to see xXx. You're way too young.<br>Rammstein opens the movie. Your brain explodes.</p>
+    <div class="notation">
+        <span class="n-intent">*BANG BANG*</span><br>
+        <span class="n-reality">{you are twelve and this is not age-appropriate}</span><br>
+        <span class="n-cross">^dad is grinning. mom will find out.^</span>
+    </div>
+    <p class="whisper">same dad. same theater. 8 mile was last year.</p>
+</div>
+
+<!-- 2: GARTH -->
+<div class="slide">
+    <div class="medium" style="color: var(--gold);">STANDING OUTSIDE THE FIRE</div>
+    <p class="small">Life is not tried, it is merely survived<br>if you're standing outside the fire.</p>
+    <div class="notation">
+        <span class="n-intent">*I want to matter*</span><br>
+        <span class="n-reality">{the safe choice is to watch}</span><br>
+        <span class="n-gap">[are you willing to burn?]</span>
+    </div>
+    <p class="whisper">country and rammstein said the same thing.<br>different guitar. same fire.</p>
+</div>
+
+<!-- 3: SCREAMING EAGLES -->
+<div class="slide">
+    <div class="big" style="color: var(--gold); font-size: 3em;">SCREAMING EAGLES</div>
+    <div class="big" style="color: var(--teal); font-size: 1.5em; font-weight: 200;">101st Airborne</div>
+    <div class="notation">
+        <span class="n-intent">*NUTS.*</span><br>
+        <span class="n-reality">{surrounded, outnumbered, freezing}</span><br>
+        <span class="n-gap">[surrender?]</span><br>
+        <span class="n-pin">vvNUTSvv</span>
+    </div>
+    <p class="whisper">General McAuliffe's entire reply to the German surrender demand.<br>One word. The most compressed bracket in military history.</p>
+</div>
+
+<!-- 4: RANGER SCHOOL -->
+<div class="slide">
+    <div class="big flash-text" style="color: var(--red); font-size: 2.5em;">
+        GO TO<br>RANGER SCHOOL
+    </div>
+    <p class="small" style="margin-top: 24px;">
+        The most absurd hype video ever made<br>
+        is also the most honest bracket notation.
+    </p>
+    <div class="notation">
+        <span class="n-intent">*I WANT TO BE THE BEST*</span><br>
+        <span class="n-reality">{you will not sleep for 62 days}</span><br>
+        <span class="n-gap">[still want it?]</span><br>
+        <span class="n-cross">^YES DRILL SERGEANT^</span>
+    </div>
+</div>
+
+<!-- 5: BOYBAND WAR -->
+<div class="slide">
+    <div class="medium" style="color: var(--pink);">THE BOYBAND WAR</div>
+    <p class="small">2001. You're fourteen. The world is ending.<br>Not because of 9/11. Because your friend likes the wrong band.</p>
+
+    <div class="vs-row">
+        <div class="vs-item" style="color: var(--gold);">*NSYNC</div>
+        <div class="vs">vs</div>
+        <div class="vs-item" style="color: var(--blue);">BSB</div>
+    </div>
+
+    <div class="notation" style="margin-top: 20px;">
+        <span class="n-intent">*my band is better*</span><br>
+        <span class="n-reality">{they're literally the same thing}</span><br>
+        <span class="n-gap">[why does this feel like life or death?]</span><br>
+        <span class="n-cross">^because you're 14 and everything is^</span>
+    </div>
+
+    <p class="whisper">the first time you decomposed a culture war<br>you just didn't have notation for it yet</p>
+</div>
+
+<!-- 6: THE ABSURD TRUTH -->
+<div class="slide">
+    <div class="medium" style="color: var(--teal);">THE ABSURD TRUTH</div>
+
+    <div class="vs-row" style="margin-top: 24px;">
+        <div class="vs-item" style="color: var(--red);">Rammstein</div>
+        <div class="vs-item" style="color: var(--gold);">Garth</div>
+        <div class="vs-item" style="color: var(--teal);">Rangers</div>
+    </div>
+    <div class="vs-row" style="margin-top: 8px;">
+        <div class="vs-item" style="color: var(--pink);">*NSYNC</div>
+        <div class="vs-item" style="color: var(--blue);">Silo</div>
+        <div class="vs-item" style="color: var(--green);">Dale</div>
+    </div>
+
+    <p class="small" style="margin-top: 24px;">
+        None of these belong in the same sentence.<br>
+        All of them decompose the same way.
+    </p>
+
+    <div class="rainbow-box">
+        <p style="color: #888; line-height: 2; text-align: center;">
+            <span class="n-intent">want</span> something.<br>
+            <span class="n-reality">see</span> what's real.<br>
+            <span class="n-gap">name</span> the gap.<br><br>
+            <span style="color: #666;">german metal, country ballad, military hype,<br>
+            boyband war, dystopian TV, NASCAR legend.<br><br>
+            same three rings. every time.</span>
+        </p>
+    </div>
+</div>
+
+<!-- 7: SILO -->
+<div class="slide">
+    <div class="medium" style="color: var(--blue);">SILO</div>
+    <p class="small">A world where the gap is the entire architecture.<br>
+    Everything you see is curated to hide what's real.</p>
+
+    <div class="notation">
+        <span class="n-intent">*I want to see outside*</span><br>
+        <span class="n-reality">{the screen shows you what they want you to see}</span><br>
+        <span class="n-gap">[what if the outside is beautiful?]</span><br>
+        <span class="n-cross">^the silo IS a constellation with one door locked^</span>
+    </div>
+
+    <p class="whisper">every system that hides the gap is a silo</p>
+</div>
+
+<!-- 8: DALE -->
+<div class="slide">
+    <div class="big" style="color: var(--red); font-size: 6em; font-weight: 900;">3</div>
+    <p class="small" style="margin-top: 8px;">
+        Dale Earnhardt did not lift.<br>
+        Turn 4. Daytona. 200 mph.<br>
+        The gap between the wall and the win was inches.
+    </p>
+    <div class="notation">
+        <span class="n-intent">*win*</span><br>
+        <span class="n-reality">{the wall is right there}</span><br>
+        <span class="n-gap">[lift?]</span><br>
+        <span class="n-pin">vvNEVERvv</span>
+    </div>
+    <p class="whisper">the intimidator didn't need notation.<br>his whole life was a bracket.</p>
+</div>
+
+<!-- 9: THE RAINBOW -->
+<div class="slide">
+    <div class="medium" style="color: #ccc;">THE RAINBOW NEEDS THE BLACK</div>
+
+    <p class="small" style="margin-top: 20px;">
+        Without the dark background<br>
+        every color is just white noise.<br><br>
+        The black isn't empty.<br>
+        It's the space that gives the rings meaning.<br><br>
+        The fire needs the dark to be seen.<br>
+        The gap needs the ground to be felt.<br>
+        The intent needs the silence to be heard.
+    </p>
+
+    <div class="rainbow-box" style="text-align: center;">
+        <span style="color: var(--gold); font-size: 1.3em;">want</span>
+        <span style="color: #333;"> · </span>
+        <span style="color: var(--teal); font-size: 1.3em;">fact</span>
+        <span style="color: #333;"> · </span>
+        <span style="color: var(--blue); font-size: 1.3em;">gap</span>
+        <br><br>
+        <span style="color: #666;">on black.<br>always on black.<br>the black is why you can see them.</span>
+    </div>
+</div>
+
+<!-- 10: OUT -->
+<div class="slide">
+    <div class="big flash-text" style="color: var(--red); font-size: 3em;">
+        lol!kaos!lol
+    </div>
+
+    <p class="small" style="margin-top: 20px;">
+        dale didn't lift.<br>
+        garth didn't stay outside.<br>
+        the ranger didn't quit.<br>
+        the boyband war was real and you know it.<br>
+        the silo door is open now.
+    </p>
+
+    <p style="color: var(--gold); margin-top: 32px; font-size: 1.2em;">
+        RAISE HELL PRAISE DALE
+    </p>
+
+    <div style="margin-top: 40px;">
+        <a href="ubuntutrees.html" class="link-tree">
+            the forest
+        </a>
+    </div>
+</div>
+
+<script>
+const starCanvas = document.getElementById('star-canvas');
+const starCtx = starCanvas.getContext('2d');
+
+function resize() {
+    starCanvas.width = window.innerWidth;
+    starCanvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// More stars, more chaos
+const stars = [];
+for (let i = 0; i < 250; i++) {
+    stars.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight * 11,
+        r: Math.random() * 1.5 + 0.3,
+        a: Math.random() * 0.2 + 0.05,
+        speed: Math.random() * 0.002 + 0.0005,
+        // Some stars are ring-colored
+        color: Math.random() > 0.85
+            ? ['255,215,0', '78,205,196', '91,141,239', '224,123,218', '255,107,107'][Math.floor(Math.random() * 5)]
+            : '180,190,220'
+    });
+}
+
+function drawStars(t) {
+    starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+    const scrollY = window.scrollY;
+    for (const s of stars) {
+        const sy = s.y - scrollY * 0.3;
+        if (sy < -10 || sy > starCanvas.height + 10) continue;
+        const pulse = Math.sin(t * s.speed + s.x) * 0.5 + 0.5;
+        const alpha = s.a * (0.5 + pulse * 0.5);
+        starCtx.beginPath();
+        starCtx.arc(s.x, sy, s.r, 0, Math.PI * 2);
+        starCtx.fillStyle = `rgba(${s.color}, ${alpha})`;
+        starCtx.fill();
+    }
+}
+
+// Nav + scroll
+const slides = document.querySelectorAll('.slide');
+const navDots = document.getElementById('nav-dots');
+
+slides.forEach(slide => {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot';
+    dot.addEventListener('click', () => slide.scrollIntoView({ behavior: 'smooth' }));
+    navDots.appendChild(dot);
+});
+
+const navDotEls = navDots.querySelectorAll('.nav-dot');
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+}, { threshold: 0.25 });
+
+slides.forEach(slide => observer.observe(slide));
+
+function updateActive() {
+    const vh = window.innerHeight;
+    let activeIndex = 0;
+    let minDist = Infinity;
+    slides.forEach((slide, i) => {
+        const rect = slide.getBoundingClientRect();
+        const dist = Math.abs(rect.top + rect.height / 2 - vh / 2);
+        if (dist < minDist) { minDist = dist; activeIndex = i; }
+    });
+    navDotEls.forEach((dot, i) => {
+        dot.classList.toggle('active', i === activeIndex);
+        dot.style.background = i === activeIndex ? '#ff6b6b' : '';
+        dot.style.boxShadow = i === activeIndex ? '0 0 8px rgba(255,107,107,0.6)' : '';
+    });
+}
+
+window.addEventListener('scroll', () => {
+    updateActive();
+    const hint = document.querySelector('.scroll-hint');
+    if (window.scrollY > 50 && hint) {
+        hint.style.opacity = '0';
+        hint.style.transition = 'opacity 0.5s';
+    }
+});
+
+function animate(time) {
+    drawStars(time);
+    requestAnimationFrame(animate);
+}
+
+updateActive();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>
