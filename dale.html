@@ -210,6 +210,7 @@
 <body>
 
 <canvas id="star-canvas"></canvas>
+<canvas id="trail-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2;"></canvas>
 <div id="nav-dots"></div>
 <div class="scroll-hint">SEND IT</div>
 
@@ -385,6 +386,10 @@
         <br><br>
         <span style="color: #666;">on black.<br>always on black.<br>the black is why you can see them.</span>
     </div>
+
+    <a href="kansas.html" class="link-tree" style="margin-top: 24px; color: var(--corp); font-size: 0.85em;" onmouseover="this.style.color='#ff6b6b'; this.style.borderColor='#ff6b6b';" onmouseout="this.style.color='#999'; this.style.borderColor='rgba(255,255,255,0.08)';">
+        see what happens when they hide it
+    </a>
 </div>
 
 <!-- 10: OUT -->
@@ -416,12 +421,125 @@
 const starCanvas = document.getElementById('star-canvas');
 const starCtx = starCanvas.getContext('2d');
 
+const trailCanvas = document.getElementById('trail-canvas');
+const trailCtx = trailCanvas.getContext('2d');
+
 function resize() {
     starCanvas.width = window.innerWidth;
     starCanvas.height = window.innerHeight;
+    trailCanvas.width = window.innerWidth;
+    trailCanvas.height = window.innerHeight;
 }
 resize();
 window.addEventListener('resize', resize);
+
+// ═══════════════════ RAINBOW YONDU — chaotic, every color ═══════════════════
+const RAINBOW = [
+    { r: 255, g: 107, b: 107 },  // red
+    { r: 255, g: 215, b: 0 },    // gold
+    { r: 160, g: 220, b: 160 },  // green
+    { r: 78,  g: 205, b: 196 },  // teal
+    { r: 91,  g: 141, b: 239 },  // blue
+    { r: 224, g: 123, b: 218 },  // pink
+];
+
+const trail = [];
+const MAX_TRAIL = 180;
+let arrowX = window.innerWidth / 2;
+let arrowY = window.innerHeight / 2;
+let targetX = arrowX;
+let targetY = arrowY;
+
+function updateArrowTarget() {
+    const allSlides = document.querySelectorAll('.slide');
+    const vh = window.innerHeight;
+    let activeSlide = null;
+    let minDist = Infinity;
+    allSlides.forEach(slide => {
+        const rect = slide.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const dist = Math.abs(center - vh / 2);
+        if (dist < minDist) { minDist = dist; activeSlide = slide; }
+    });
+    if (activeSlide) {
+        const rect = activeSlide.getBoundingClientRect();
+        targetX = rect.left + rect.width / 2;
+        targetY = rect.top + rect.height * 0.3;
+    }
+}
+
+function drawTrail(time) {
+    trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+
+    // CHAOTIC follow — faster, looser
+    arrowX += (targetX - arrowX) * 0.05;
+    arrowY += (targetY - arrowY) * 0.05;
+
+    // WILD drift — Dale didn't drive straight
+    const driftX = Math.sin(time * 0.0006) * 120
+        + Math.sin(time * 0.0017) * 50
+        + Math.cos(time * 0.0029) * 30
+        + Math.sin(time * 0.0041) * 15;
+    const driftY = Math.cos(time * 0.0005) * 60
+        + Math.sin(time * 0.0013) * 35
+        + Math.cos(time * 0.0023) * 20
+        + Math.sin(time * 0.0037) * 12;
+
+    // Rainbow color cycles through all ring colors
+    const colorIndex = (time * 0.002) % RAINBOW.length;
+    const ci = Math.floor(colorIndex);
+    const cf = colorIndex - ci;
+    const c1 = RAINBOW[ci % RAINBOW.length];
+    const c2 = RAINBOW[(ci + 1) % RAINBOW.length];
+    const color = {
+        r: c1.r + (c2.r - c1.r) * cf,
+        g: c1.g + (c2.g - c1.g) * cf,
+        b: c1.b + (c2.b - c1.b) * cf,
+    };
+
+    trail.push({
+        x: arrowX + driftX,
+        y: arrowY + driftY,
+        color: { ...color }
+    });
+    if (trail.length > MAX_TRAIL) trail.shift();
+    if (trail.length < 3) return;
+
+    // Draw the rainbow trail
+    for (let i = 1; i < trail.length; i++) {
+        const prev = trail[i - 1];
+        const curr = trail[i];
+        const life = i / trail.length;
+        const alpha = life * life * 0.5;
+        const c = curr.color;
+
+        trailCtx.beginPath();
+        trailCtx.moveTo(prev.x, prev.y);
+        trailCtx.lineTo(curr.x, curr.y);
+        trailCtx.strokeStyle = `rgba(${c.r|0}, ${c.g|0}, ${c.b|0}, ${alpha})`;
+        trailCtx.lineWidth = 1 + life * 3;
+        trailCtx.lineCap = 'round';
+        trailCtx.stroke();
+    }
+
+    // Arrow head — rainbow glow
+    const head = trail[trail.length - 1];
+    const hc = head.color;
+    const gradient = trailCtx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 30);
+    gradient.addColorStop(0, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.6)`);
+    gradient.addColorStop(0.4, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.15)`);
+    gradient.addColorStop(1, `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0)`);
+    trailCtx.beginPath();
+    trailCtx.arc(head.x, head.y, 30, 0, Math.PI * 2);
+    trailCtx.fillStyle = gradient;
+    trailCtx.fill();
+
+    // Core dot — bright
+    trailCtx.beginPath();
+    trailCtx.arc(head.x, head.y, 3, 0, Math.PI * 2);
+    trailCtx.fillStyle = `rgba(${hc.r|0}, ${hc.g|0}, ${hc.b|0}, 0.95)`;
+    trailCtx.fill();
+}
 
 // More stars, more chaos
 const stars = [];
@@ -493,6 +611,7 @@ function updateActive() {
 
 window.addEventListener('scroll', () => {
     updateActive();
+    updateArrowTarget();
     const hint = document.querySelector('.scroll-hint');
     if (window.scrollY > 50 && hint) {
         hint.style.opacity = '0';
@@ -502,6 +621,7 @@ window.addEventListener('scroll', () => {
 
 function animate(time) {
     drawStars(time);
+    drawTrail(time);
     requestAnimationFrame(animate);
 }
 

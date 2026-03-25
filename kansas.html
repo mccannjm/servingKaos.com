@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Kansas Detour</title>
+    <meta name="description" content="What happens when systems hide the gap on purpose.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080816;
+            --gold: #ffd700;
+            --teal: #4ecdc4;
+            --blue: #5b8def;
+            --pink: #e07bda;
+            --green: #a0dca0;
+            --red: #ff6b6b;
+            --corp: #999;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: var(--bg);
+            color: #888;
+            overflow-x: hidden;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide {
+            position: relative;
+            z-index: 1;
+            min-height: 75vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 50px 40px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .slide.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .big {
+            font-size: 3em;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+
+        .medium {
+            font-size: 2em;
+            font-weight: 200;
+            letter-spacing: 0.1em;
+        }
+
+        .small {
+            font-size: 1em;
+            color: #666;
+            margin-top: 16px;
+            line-height: 1.8;
+            max-width: 520px;
+        }
+
+        .whisper {
+            color: #555;
+            font-size: 0.85em;
+            margin-top: 20px;
+        }
+
+        /* ── The broken bracket — what they say vs what they mean ── */
+        .broken {
+            margin-top: 24px;
+            padding: 20px 28px;
+            max-width: 520px;
+            border-radius: 8px;
+            line-height: 2.2;
+            text-align: left;
+            font-size: 1.05em;
+        }
+
+        /* What they SAY — clean, corporate */
+        .says {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        /* What they MEAN — exposed, red border */
+        .means {
+            background: rgba(255, 107, 107, 0.03);
+            border: 1px solid rgba(255, 107, 107, 0.12);
+        }
+
+        .corp-voice {
+            color: var(--corp);
+            font-style: italic;
+        }
+
+        .real-voice {
+            color: var(--red);
+        }
+
+        .n-intent { color: var(--gold); }
+        .n-reality { color: var(--teal); }
+        .n-gap { color: var(--blue); }
+        .n-cross { color: var(--pink); }
+        .n-pin { color: var(--red); }
+
+        .vs-arrow {
+            font-size: 2em;
+            color: #333;
+            margin: 12px 0;
+        }
+
+        .strikethrough {
+            text-decoration: line-through;
+            color: #444;
+        }
+
+        #nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: none;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .nav-dot.active { transform: scale(1.4); }
+
+        .scroll-hint {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: #555;
+            font-size: 0.8em;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        .link-tree {
+            display: inline-block;
+            margin: 12px 8px;
+            padding: 12px 28px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        .link-tree:hover {
+            color: var(--gold);
+            border-color: var(--gold);
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="star-canvas"></canvas>
+<div id="nav-dots"></div>
+<div class="scroll-hint">scroll if you dare</div>
+
+<!-- ═══════════════ THE KANSAS DETOUR ═══════════════ -->
+
+<!-- 0: TITLE -->
+<div class="slide">
+    <div class="big" style="color: var(--corp);">THE KANSAS<br>DETOUR</div>
+    <p class="small" style="margin-top: 20px;">
+        What happens when systems hide the gap on purpose.
+    </p>
+    <p class="whisper">every one of these is real</p>
+</div>
+
+<!-- 1: YOUR CALL -->
+<div class="slide">
+    <div class="medium" style="color: var(--corp);">"Your call is important to us"</div>
+
+    <div class="broken says">
+        <span class="corp-voice">*We value you as a customer*</span><br>
+        <span class="corp-voice">{Please hold for the next available representative}</span>
+    </div>
+    <div class="vs-arrow">↓</div>
+    <div class="broken means">
+        <span class="n-intent">*we want your money*</span><br>
+        <span class="n-reality">{we fired half the call center}</span><br>
+        <span class="n-gap">[47 minutes is how much your time is worth to us]</span>
+    </div>
+
+    <p class="whisper">they'll pay for hold music but not a human</p>
+</div>
+
+<!-- 2: PRIVACY -->
+<div class="slide">
+    <div class="medium" style="color: var(--corp);">"We value your privacy"</div>
+
+    <div class="broken says">
+        <span class="corp-voice">*Your data is safe with us*</span><br>
+        <span class="corp-voice">{See our updated privacy policy}</span>
+    </div>
+    <div class="vs-arrow">↓</div>
+    <div class="broken means">
+        <span class="n-intent">*we want your data*</span><br>
+        <span class="n-reality">{we sell it to 347 partners}</span><br>
+        <span class="n-gap">[the policy is 14,000 words so you won't read it]</span><br>
+        <span class="n-cross">^the length IS the strategy^</span>
+    </div>
+</div>
+
+<!-- 3: TOW TRUCK -->
+<div class="slide">
+    <div class="medium" style="color: var(--corp);">"Community standards"</div>
+
+    <div class="broken says">
+        <span class="corp-voice">*We maintain a safe and welcoming environment*</span><br>
+        <span class="corp-voice">{Vehicles in violation will be towed}</span>
+    </div>
+    <div class="vs-arrow">↓</div>
+    <div class="broken means">
+        <span class="n-intent">*compliance*</span><br>
+        <span class="n-reality">{will call tow truck but not the human}</span><br>
+        <span class="n-gap">[you had a flat tire. they had your phone number.]</span><br>
+        <span class="n-pin" style="font-size: 1.1em;">I AM A HUMAN BEING</span>
+    </div>
+
+    <p class="whisper">the system routes around the person<br>to get to the person's car</p>
+</div>
+
+<!-- 4: CONTRACT -->
+<div class="slide">
+    <div class="medium" style="color: var(--corp);">"Updated payment options"</div>
+
+    <div class="broken says">
+        <span class="corp-voice">*For your convenience*</span><br>
+        <span class="corp-voice">{We now accept payments through our new partner}</span>
+    </div>
+    <div class="vs-arrow">↓</div>
+    <div class="broken means">
+        <span class="n-intent">*we get a kickback from the platform*</span><br>
+        <span class="n-reality">{the contract says check. for seven years.}</span><br>
+        <span class="n-gap">[they know it violates the agreement]</span><br>
+        <span class="n-cross">^"for your convenience" means for theirs^</span>
+    </div>
+</div>
+
+<!-- 5: SOCIAL -->
+<div class="slide">
+    <div class="medium" style="color: var(--corp);">"Connect with friends"</div>
+
+    <div class="broken says">
+        <span class="corp-voice">*Share your moments*</span><br>
+        <span class="corp-voice">{Stay connected with the people you love}</span>
+    </div>
+    <div class="vs-arrow">↓</div>
+    <div class="broken means">
+        <span class="n-intent">*maximize engagement time*</span><br>
+        <span class="n-reality">{the algorithm shows you what makes you angry}</span><br>
+        <span class="n-gap">[anger scrolls longer than joy]</span><br>
+        <span class="n-cross">^you are the product performing for the product^</span>
+    </div>
+</div>
+
+<!-- 6: WEATHER APP -->
+<div class="slide">
+    <div class="medium" style="color: var(--corp);">"Allow access to Contacts?"</div>
+
+    <p class="small">It's a weather app.</p>
+
+    <div class="broken means" style="margin-top: 20px;">
+        <span class="n-intent">*we want your address book*</span><br>
+        <span class="n-reality">{to know the temperature you need zero contacts}</span><br>
+        <span class="n-gap">[why did we even ask?]</span><br>
+        <span class="n-cross">^because you'll tap Allow without thinking^</span>
+    </div>
+
+    <p class="whisper">the gap between "allow" and "why" is where they live</p>
+</div>
+
+<!-- 7: TERMS OF SERVICE -->
+<div class="slide">
+    <div class="medium" style="color: var(--corp);">"I agree"</div>
+
+    <p class="small" style="margin-top: 12px;">
+        You didn't read it. They know you didn't read it.<br>
+        They wrote it so you wouldn't read it.<br>
+        That's not a bug. That's the design.
+    </p>
+
+    <div class="broken means" style="margin-top: 20px;">
+        <span class="n-intent">*legal protection*</span><br>
+        <span class="n-reality">{73 pages of engineered confusion}</span><br>
+        <span class="n-gap">[informed consent requires being informed]</span><br>
+        <span class="n-cross">^the gap IS the product^</span>
+    </div>
+</div>
+
+<!-- 8: THE PATTERN -->
+<div class="slide">
+    <div class="medium" style="color: var(--red);">THE PATTERN</div>
+
+    <p class="small" style="margin-top: 16px;">
+        Every one of these is the same move:
+    </p>
+
+    <div class="broken means" style="margin-top: 20px; text-align: center; font-size: 1.1em;">
+        <span class="corp-voice" style="font-size: 1.2em;">say one thing</span><br>
+        <span style="color: #333;">↓</span><br>
+        <span class="n-reality" style="font-size: 1.2em;">do another</span><br>
+        <span style="color: #333;">↓</span><br>
+        <span class="n-gap" style="font-size: 1.2em;">hide the gap</span>
+    </div>
+
+    <p class="small" style="margin-top: 24px;">
+        The hypocrisy isn't the gap.<br>
+        Every system has gaps.<br><br>
+        <span style="color: var(--red);">The hypocrisy is hiding it.</span>
+    </p>
+</div>
+
+<!-- 9: THE ANTIDOTE -->
+<div class="slide">
+    <div class="medium" style="color: var(--gold);">THE ANTIDOTE</div>
+
+    <p class="small" style="margin-top: 16px;">
+        Label it. Say what you want.<br>
+        Say what's real. Name the gap.<br>
+        Out loud. In the open. In notation.
+    </p>
+
+    <div class="broken" style="background: rgba(255,215,0,0.03); border: 1px solid rgba(255,215,0,0.12); margin-top: 20px; text-align: center; font-size: 1.1em;">
+        <span class="n-intent">*intent*</span> — visible<br>
+        <span class="n-reality">{reality}</span> — visible<br>
+        <span class="n-gap">[gap]</span> — visible<br><br>
+        <span style="color: var(--gold);">the gap can't hide if you name it</span>
+    </div>
+
+    <p class="whisper">
+        that's it. that's the whole tool.<br>
+        not a weapon. a mirror.<br>
+        you can't gaslight a bracket.
+    </p>
+</div>
+
+<!-- 10: OUT -->
+<div class="slide">
+    <div class="big" style="color: var(--gold); font-size: 2.5em;">
+        I-80 THE WHOLE WAY
+    </div>
+
+    <p class="small" style="margin-top: 16px;">
+        stop taking the Kansas detour.<br>
+        label the intent. ground the reality. name the gap.<br>
+        no more 14,000-word policies.<br>
+        no more "for your convenience."<br>
+        no more calling the tow truck instead of the human.
+    </p>
+
+    <div style="margin-top: 40px;">
+        <a href="dale.html" class="link-tree" style="color: var(--red);" onmouseover="this.style.borderColor='#ff6b6b';" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';">
+            raise hell praise dale
+        </a>
+        <a href="ubuntutrees.html" class="link-tree">
+            the forest
+        </a>
+    </div>
+</div>
+
+<script>
+const starCanvas = document.getElementById('star-canvas');
+const starCtx = starCanvas.getContext('2d');
+
+function resize() {
+    starCanvas.width = window.innerWidth;
+    starCanvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const stars = [];
+for (let i = 0; i < 80; i++) {
+    stars.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight * 11,
+        r: Math.random() * 1 + 0.2,
+        a: Math.random() * 0.08 + 0.02,
+        speed: Math.random() * 0.001 + 0.0003
+    });
+}
+
+function drawStars(t) {
+    starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+    const scrollY = window.scrollY;
+    for (const s of stars) {
+        const sy = s.y - scrollY * 0.3;
+        if (sy < -10 || sy > starCanvas.height + 10) continue;
+        const pulse = Math.sin(t * s.speed + s.x) * 0.5 + 0.5;
+        const alpha = s.a * (0.5 + pulse * 0.5);
+        starCtx.beginPath();
+        starCtx.arc(s.x, sy, s.r, 0, Math.PI * 2);
+        starCtx.fillStyle = `rgba(120, 120, 140, ${alpha})`;
+        starCtx.fill();
+    }
+}
+
+const slides = document.querySelectorAll('.slide');
+const navDots = document.getElementById('nav-dots');
+slides.forEach(slide => {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot';
+    dot.addEventListener('click', () => slide.scrollIntoView({ behavior: 'smooth' }));
+    navDots.appendChild(dot);
+});
+const navDotEls = navDots.querySelectorAll('.nav-dot');
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+}, { threshold: 0.25 });
+slides.forEach(slide => observer.observe(slide));
+
+function updateActive() {
+    const vh = window.innerHeight;
+    let ai = 0, min = Infinity;
+    slides.forEach((s, i) => {
+        const d = Math.abs(s.getBoundingClientRect().top + s.getBoundingClientRect().height / 2 - vh / 2);
+        if (d < min) { min = d; ai = i; }
+    });
+    navDotEls.forEach((d, i) => {
+        d.classList.toggle('active', i === ai);
+        d.style.background = i === ai ? '#999' : '';
+    });
+}
+
+window.addEventListener('scroll', () => {
+    updateActive();
+    const hint = document.querySelector('.scroll-hint');
+    if (window.scrollY > 50 && hint) { hint.style.opacity = '0'; hint.style.transition = 'opacity 0.5s'; }
+});
+
+function animate(t) { drawStars(t); requestAnimationFrame(animate); }
+updateActive();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>
