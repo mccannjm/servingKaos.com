@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAISE HELL PRAISE DALE</title>
+    <title>MAXIMUM VOLUME</title>
     <link rel="icon" href="favicon.svg">
-    <meta name="description" content="The garage. The numbers that parked for good, and the man who never lifted. The rainbow needs the black.">
-    <meta property="og:title" content="RAISE HELL PRAISE DALE">
-    <meta property="og:description" content="The checkered flag flies forever. Pins never decay.">
+    <meta name="description" content="German metal, country ballads, military hype, boyband wars, dystopian TV. Same three rings. Maximum volume.">
+    <meta property="og:title" content="MAXIMUM VOLUME">
+    <meta property="og:description" content="None of it belongs in the same sentence. All of it decomposes the same way.">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -84,7 +84,6 @@
             color: #555;
             font-size: 0.85em;
             margin-top: 20px;
-            line-height: 1.8;
         }
 
         .notation {
@@ -106,13 +105,38 @@
         .n-pin { color: var(--red); }
         .n-aether { color: var(--green); }
 
+        .vs {
+            font-size: 5em;
+            font-weight: 100;
+            color: #333;
+            margin: 0 20px;
+        }
+
+        .vs-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .vs-item {
+            font-size: 1.6em;
+            font-weight: 300;
+            padding: 16px 24px;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+        }
+
         @keyframes flash {
             0% { opacity: 0.6; }
             50% { opacity: 1; }
             100% { opacity: 0.6; }
         }
 
-        .flash-text { animation: flash 1.5s ease-in-out infinite; }
+        .flash-text {
+            animation: flash 1.5s ease-in-out infinite;
+        }
 
         @keyframes rainbow {
             0% { border-color: var(--red); }
@@ -131,70 +155,6 @@
             border-radius: 12px;
             margin-top: 24px;
             max-width: 500px;
-        }
-
-        /* ── The garage wall ── */
-        .wall {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
-            gap: 14px;
-            max-width: 780px;
-            width: 100%;
-            margin-top: 30px;
-        }
-
-        .num-card {
-            padding: 20px 16px 16px;
-            background: rgba(255,255,255,0.015);
-            border: 1px solid rgba(255,107,107,0.1);
-            border-radius: 10px;
-            transition: all 0.4s ease;
-            text-align: center;
-        }
-
-        .num-card:hover {
-            border-color: rgba(255,107,107,0.45);
-            box-shadow: 0 0 26px rgba(255,107,107,0.1);
-            transform: translateY(-2px);
-        }
-
-        .num-card .num {
-            font-size: 2.8em;
-            font-weight: 900;
-            font-style: italic;
-            color: var(--red);
-            line-height: 1;
-        }
-
-        .num-card .who {
-            color: #ccc;
-            font-size: 0.95em;
-            margin-top: 8px;
-            letter-spacing: 0.04em;
-        }
-
-        .num-card .when {
-            color: #555;
-            font-size: 0.7em;
-            margin-top: 4px;
-            font-style: italic;
-        }
-
-        .num-card .line {
-            color: #777;
-            font-size: 0.78em;
-            margin-top: 10px;
-            line-height: 1.65;
-        }
-
-        /* Dale's plaque — black on black, like the car */
-        .num-card.dale {
-            background: rgba(0, 0, 0, 0.55);
-            border-color: rgba(255, 107, 107, 0.4);
-        }
-        .num-card.dale .num {
-            color: #eee;
-            text-shadow: 0 0 18px rgba(255, 107, 107, 0.7);
         }
 
         .link-tree {
@@ -254,193 +214,158 @@
 <div id="nav-dots"></div>
 <div class="scroll-hint">SEND IT</div>
 
-<!-- ═══════════════ THE DALE PAGE — THE GARAGE ═══════════════ -->
+<!-- ═══════════════ MAXIMUM VOLUME ═══════════════ -->
 
 <!-- 0: TITLE -->
 <div class="slide">
-    <div class="big" style="color: var(--red);">RAISE HELL</div>
-    <div class="big" style="color: var(--gold);">PRAISE DALE</div>
-    <p class="whisper">the rainbow needs the black</p>
+    <div class="big" style="color: var(--gold);">MAXIMUM</div>
+    <div class="big" style="color: var(--red);">VOLUME</div>
+    <p class="small" style="margin-top: 20px;">
+        German metal. A country ballad. Military hype.<br>
+        A boyband war. Dystopian TV.
+    </p>
+    <p class="whisper">none of it belongs in the same sentence.<br>all of it decomposes the same way.</p>
 </div>
 
-<!-- 1: THE 3 -->
+<!-- 1: FEUER FREI -->
 <div class="slide">
-    <div class="big" style="color: var(--red); font-size: 6em; font-weight: 900;">3</div>
-    <p class="small" style="margin-top: 8px;">
-        Dale Earnhardt did not lift.<br>
-        Turn 4. Daytona. 200 mph.<br>
-        The gap between the wall and the win was inches.
+    <div class="big flash-text" style="color: var(--red); font-size: 3.5em;">FEUER FREI</div>
+    <p class="small">Dad takes you to see xXx. You're way too young.<br>Rammstein opens the movie. Your brain explodes.</p>
+    <div class="notation">
+        <span class="n-intent">*BANG BANG*</span><br>
+        <span class="n-reality">{you are twelve and this is not age-appropriate}</span><br>
+        <span class="n-cross">^dad is grinning. mom will find out.^</span>
+    </div>
+    <p class="whisper">same dad. same year. 8 mile was three months later.</p>
+</div>
+
+<!-- 2: GARTH -->
+<div class="slide">
+    <div class="medium" style="color: var(--gold);">STANDING OUTSIDE THE FIRE</div>
+    <p class="small">Life is not tried, it is merely survived<br>if you're standing outside the fire.</p>
+    <div class="notation">
+        <span class="n-intent">*I want to matter*</span><br>
+        <span class="n-reality">{the safe choice is to watch}</span><br>
+        <span class="n-gap">[are you willing to burn?]</span>
+    </div>
+    <p class="whisper">country and rammstein said the same thing.<br>different guitar. same fire.</p>
+</div>
+
+<!-- 3: SCREAMING EAGLES -->
+<div class="slide">
+    <div class="big" style="color: var(--gold); font-size: 3em;">SCREAMING EAGLES</div>
+    <div class="big" style="color: var(--teal); font-size: 1.5em; font-weight: 200;">101st Airborne</div>
+    <div class="notation">
+        <span class="n-intent">*NUTS.*</span><br>
+        <span class="n-reality">{surrounded, outnumbered, freezing}</span><br>
+        <span class="n-gap">[surrender?]</span><br>
+        <span class="n-pin">vvNUTSvv</span>
+    </div>
+    <p class="whisper">General McAuliffe's entire reply to the German surrender demand.<br>One word. The most compressed bracket in military history.</p>
+</div>
+
+<!-- 4: RANGER SCHOOL -->
+<div class="slide">
+    <div class="big flash-text" style="color: var(--red); font-size: 2.5em;">
+        GO TO<br>RANGER SCHOOL
+    </div>
+    <p class="small" style="margin-top: 24px;">
+        The most absurd hype video ever made<br>
+        is also the most honest bracket notation.
     </p>
     <div class="notation">
-        <span class="n-intent">*win*</span><br>
-        <span class="n-reality">{the wall is right there}</span><br>
-        <span class="n-gap">[lift?]</span><br>
-        <span class="n-pin">vvNEVERvv</span>
-    </div>
-    <p class="whisper">the intimidator didn't need notation.<br>his whole life was a bracket.</p>
-</div>
-
-<!-- 2: THE GARAGE -->
-<div class="slide">
-    <div class="medium" style="color: var(--corp);">THE GARAGE</div>
-    <p class="small" style="margin-top: 16px;">
-        NASCAR doesn't retire numbers.<br>
-        It doesn't need to.<br>
-        Some numbers outgrow the cars that carry them.
-    </p>
-    <p class="whisper">this wall is for the ones who parked it for good.<br>the checkered flag flies forever.</p>
-</div>
-
-<!-- 3: THE WALL -->
-<div class="slide">
-    <div class="wall">
-        <div class="num-card">
-            <div class="num">8</div>
-            <div class="who">Joe Weatherly</div>
-            <div class="when">Riverside, January 1964</div>
-            <div class="line">Back-to-back champion. The Clown Prince of Racing.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">22</div>
-            <div class="who">Fireball Roberts</div>
-            <div class="when">Charlotte, May 1964</div>
-            <div class="line">His crash gave the sport fuel cells and fire suits. Every driver since owes him a lap.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">25</div>
-            <div class="who">Tim Richmond</div>
-            <div class="when">August 1989</div>
-            <div class="line">Thirteen wins. Gone at 34. Too bright, too brief.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">70</div>
-            <div class="who">J.D. McDuffie</div>
-            <div class="when">Watkins Glen, August 1991</div>
-            <div class="line">Over 650 starts. Zero wins. Showed up every single Sunday anyway.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">7</div>
-            <div class="who">Alan Kulwicki</div>
-            <div class="when">April 1993</div>
-            <div class="line">Owner-driver champion four months earlier. The Polish victory lap runs forever.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">28</div>
-            <div class="who">Davey Allison</div>
-            <div class="when">Talladega, July 1993</div>
-            <div class="line">The Alabama Gang's brightest next thing. The 28 still means him.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">51</div>
-            <div class="who">Neil Bonnett</div>
-            <div class="when">Daytona, February 1994</div>
-            <div class="line">Alabama Gang. Dale's best friend. Climbed back in for one more.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">45</div>
-            <div class="who">Adam Petty</div>
-            <div class="when">Loudon, May 2000</div>
-            <div class="line">Fourth generation. Nineteen years old.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">42</div>
-            <div class="who">Kenny Irwin Jr.</div>
-            <div class="when">Loudon, July 2000</div>
-            <div class="line">Same corner. Eight weeks later. The sport should have listened the first time.</div>
-        </div>
-        <div class="num-card dale">
-            <div class="num">3</div>
-            <div class="who">Dale Earnhardt</div>
-            <div class="when">Daytona, February 18, 2001</div>
-            <div class="line">Turn 4, last lap. The sport rebuilt itself so there would never be another.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">21</div>
-            <div class="who">David Pearson</div>
-            <div class="when">November 2018</div>
-            <div class="line">The Silver Fox. 105 wins in 574 starts. Do the math and sit down.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">11</div>
-            <div class="who">Cale Yarborough</div>
-            <div class="when">December 31, 2023</div>
-            <div class="line">Three straight championships. Still nobody else has.</div>
-        </div>
-        <div class="num-card">
-            <div class="num">12</div>
-            <div class="who">Bobby Allison</div>
-            <div class="when">November 2024</div>
-            <div class="line">Alabama Gang patriarch. His 85th win was counted forty years late. He knew all along.</div>
-        </div>
+        <span class="n-intent">*I WANT TO BE THE BEST*</span><br>
+        <span class="n-reality">{you will not sleep for 62 days}</span><br>
+        <span class="n-gap">[still want it?]</span><br>
+        <span class="n-cross">^YES DRILL SERGEANT^</span>
     </div>
 </div>
 
-<!-- 4: PINS NEVER DECAY -->
+<!-- 5: BOYBAND WAR -->
 <div class="slide">
-    <div class="medium" style="color: var(--red);">PINS NEVER DECAY</div>
-    <p class="small" style="margin-top: 16px;">
-        In Zeus, everything fades. Thoughts lose weight with a two-hour
-        half-life. Threads close or decay. The constellation molts and
-        starts again.<br><br>
-        Except pins. A pin survives every persist, every molt, every wake.
-        It never loses weight. It anchors everything near it.
-    </p>
-    <div class="notation" style="text-align: center;">
-        <span class="n-pin" style="text-decoration: underline;">vvDALEvv</span>&nbsp;&nbsp;
-        <span class="n-pin" style="text-decoration: underline;">vvDAVEYvv</span>&nbsp;&nbsp;
-        <span class="n-pin" style="text-decoration: underline;">vvFIREBALLvv</span>
+    <div class="medium" style="color: var(--pink);">THE BOYBAND WAR</div>
+    <p class="small">2001. You're fourteen. The world is ending.<br>Not because of 9/11. Because your friend likes the wrong band.</p>
+
+    <div class="vs-row">
+        <div class="vs-item" style="color: var(--gold);">*NSYNC</div>
+        <div class="vs">vs</div>
+        <div class="vs-item" style="color: var(--blue);">BSB</div>
     </div>
-    <p class="whisper">that rule wasn't written for software.</p>
+
+    <div class="notation" style="margin-top: 20px;">
+        <span class="n-intent">*my band is better*</span><br>
+        <span class="n-reality">{they're literally the same thing}</span><br>
+        <span class="n-gap">[why does this feel like life or death?]</span><br>
+        <span class="n-cross">^because you're 14 and everything is^</span>
+    </div>
+
+    <p class="whisper">the first time you decomposed a culture war<br>you just didn't have notation for it yet</p>
 </div>
 
-<!-- 5: THE RAINBOW -->
+<!-- 6: SILO -->
 <div class="slide">
-    <div class="medium" style="color: #ccc;">THE RAINBOW NEEDS THE BLACK</div>
+    <div class="medium" style="color: var(--blue);">SILO</div>
+    <p class="small">A world where the gap is the entire architecture.<br>
+    Everything you see is curated to hide what's real.</p>
 
-    <p class="small" style="margin-top: 20px;">
-        Without the dark background<br>
-        every color is just white noise.<br><br>
-        The black isn't empty.<br>
-        It's the space that gives the rings meaning.<br><br>
-        The fire needs the dark to be seen.<br>
-        The gap needs the ground to be felt.<br>
-        The intent needs the silence to be heard.
+    <div class="notation">
+        <span class="n-intent">*I want to see outside*</span><br>
+        <span class="n-reality">{the screen shows you what they want you to see}</span><br>
+        <span class="n-gap">[what if the outside is beautiful?]</span><br>
+        <span class="n-cross">^the silo IS a constellation with one door locked^</span>
+    </div>
+
+    <p class="whisper">every system that hides the gap is a silo</p>
+</div>
+
+<!-- 7: THE ABSURD TRUTH -->
+<div class="slide">
+    <div class="medium" style="color: var(--teal);">THE ABSURD TRUTH</div>
+
+    <div class="vs-row" style="margin-top: 24px;">
+        <div class="vs-item" style="color: var(--red);">Rammstein</div>
+        <div class="vs-item" style="color: var(--gold);">Garth</div>
+        <div class="vs-item" style="color: var(--teal);">Rangers</div>
+    </div>
+    <div class="vs-row" style="margin-top: 8px;">
+        <div class="vs-item" style="color: var(--pink);">*NSYNC</div>
+        <div class="vs-item" style="color: var(--blue);">Silo</div>
+        <div class="vs-item" style="color: var(--green);">Dale</div>
+    </div>
+
+    <p class="small" style="margin-top: 24px;">
+        None of these belong in the same sentence.<br>
+        All of them decompose the same way.
     </p>
 
-    <div class="rainbow-box" style="text-align: center;">
-        <span style="color: var(--gold); font-size: 1.3em;">want</span>
-        <span style="color: #333;"> · </span>
-        <span style="color: var(--teal); font-size: 1.3em;">fact</span>
-        <span style="color: #333;"> · </span>
-        <span style="color: var(--blue); font-size: 1.3em;">gap</span>
-        <br><br>
-        <span style="color: #666;">on black.<br>always on black.<br>the black is why you can see them.</span>
+    <div class="rainbow-box">
+        <p style="color: #888; line-height: 2; text-align: center;">
+            <span class="n-intent">want</span> something.<br>
+            <span class="n-reality">see</span> what's real.<br>
+            <span class="n-gap">name</span> the gap.<br><br>
+            <span style="color: #666;">german metal, country ballad, military hype,<br>
+            boyband war, dystopian TV, NASCAR legend.<br><br>
+            same three rings. every time.</span>
+        </p>
     </div>
 </div>
 
-<!-- 6: OUT -->
+<!-- 8: OUT -->
 <div class="slide">
     <div class="big flash-text" style="color: var(--red); font-size: 3em;">
         lol!kaos!lol
     </div>
 
     <p class="small" style="margin-top: 20px;">
-        dale didn't lift.<br>
-        davey was almost home.<br>
-        alan flew his own plane and drove his own car.<br>
-        the wall remembers all of them.
-    </p>
-
-    <p style="color: var(--gold); margin-top: 32px; font-size: 1.2em;">
-        RAISE HELL PRAISE DALE
+        garth didn't stay outside.<br>
+        the ranger didn't quit.<br>
+        the boyband war was real and you know it.<br>
+        the silo door is open now.
     </p>
 
     <div style="margin-top: 40px;">
-        <a href="volume.html" class="link-tree" style="color: var(--gold);">
-            maximum volume — the songs
-        </a>
-        <a href="kansas.html" class="link-tree">
-            see what happens when they hide it
+        <a href="dale.html" class="link-tree" style="color: var(--red);">
+            and dale didn't lift — the garage
         </a>
         <a href="index.html" class="link-tree">
             the forest
@@ -566,7 +491,7 @@ const stars = [];
 for (let i = 0; i < 250; i++) {
     stars.push({
         x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight * 8,
+        y: Math.random() * window.innerHeight * 10,
         r: Math.random() * 1.5 + 0.3,
         a: Math.random() * 0.2 + 0.05,
         speed: Math.random() * 0.002 + 0.0005,
@@ -607,7 +532,7 @@ const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) entry.target.classList.add('visible');
     });
-}, { threshold: 0.15 });
+}, { threshold: 0.25 });
 
 slides.forEach(slide => observer.observe(slide));
 

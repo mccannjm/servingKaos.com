@@ -173,11 +173,6 @@ async function main() {
         check(closed === '{half a thought}', 'Tab closes the thread', closed);
 
         console.log('sigils:');
-        await page.fill('#input', 'running the 3 like Dale meant it');
-        await page.waitForTimeout(400);
-        const whisper = await page.locator('#sigilWhisper').textContent();
-        check(whisper.includes('Dale Earnhardt'), 'the 3 gets its driver named', whisper);
-
         await page.fill('#input', 'vvARIADNEvv *the seed knows its year*');
         await page.waitForTimeout(400);
         await page.click('#moltBtn');
@@ -187,6 +182,21 @@ async function main() {
         check(sigilSeed.includes('beacon') && sigilSeed.includes('.-'), 'pins ride the morse beacon');
         await page.click('#moltClose');
         check(pageErrors.length === 0, 'no page errors through editor/zim⁰/sigils', pageErrors.join(' | '));
+
+        // ── 3c. The garage and the volume ──
+        console.log('the garage:');
+        await page.goto(`${base}/dale.html`);
+        await page.waitForTimeout(500);
+        const wall = await page.locator('.num-card').count();
+        check(wall === 13, 'the wall holds thirteen plaques', `${wall} cards`);
+        const garageText = await page.locator('body').textContent();
+        check(garageText.includes('Davey Allison') && garageText.includes('PINS NEVER DECAY'),
+            'the garage remembers, and the pin rule is named');
+        check(!fs.readFileSync(path.join(SITE, 'ariadne.html'), 'utf8').includes('NASCAR_LEGENDS'),
+            'the numbers left the instrument — no legends table in ariadne');
+        const volumeText = fs.readFileSync(path.join(SITE, 'volume.html'), 'utf8');
+        check(volumeText.includes('FEUER FREI') && volumeText.includes('BOYBAND WAR') && volumeText.includes('SILO'),
+            'the comparisons survived the move to maximum volume');
 
         // ── 4. Nova door ──
         console.log('nova door:');

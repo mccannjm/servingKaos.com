@@ -274,8 +274,6 @@ body {
 #novaState { color: var(--gold); letter-spacing: 0.08em; }
 #novaState.burst { text-shadow: 0 0 14px rgba(255, 215, 0, 0.9); }
 
-.sigil { color: rgba(255, 107, 107, 0.55); font-style: italic; }
-
 .nova-legend {
     position: absolute;
     left: 14px;
@@ -435,7 +433,6 @@ vvARIADNEvv</textarea>
         <div class="ring-pills" id="ringPills"></div>
         <div id="openThreadsLabel" style="font-style:italic" aria-live="polite"></div>
         <span id="novaState" hidden></span>
-        <span id="sigilWhisper" class="sigil" hidden></span>
         <span id="novaAnnouncer" class="sr-only" aria-live="polite"></span>
         <button class="vitals" id="vitalsBtn" aria-label="Show convergence diagnostics" aria-expanded="false">
             <span>temper: <span class="temper-word" id="temperWord">rest</span></span>
@@ -704,8 +701,6 @@ function moltSeed(nodes, text, report) {
     }
     for (const t of threads) out += `[ still open — ${t.preview || t.name} ]\n`;
     if (pins.length) out += `: beacon — ${pins.map(p => `${p.content} = ${toMorse(p.content)}`).join(' / ')} :\n`;
-    const car = legendIn(text);
-    if (car !== null) out += `: car ${car} — ${NASCAR_LEGENDS[car]} :\n`;
     out += `: paste this seed into any Ariadne to wake it :`;
     return out;
 }
@@ -1525,8 +1520,11 @@ function renderSuggestions(list) {
 // ═══════════════ SIGILS — the funsies layer ═══════════════
 //
 // Encodings that ride along without touching the kernel: pins carry a
-// morse beacon into the molt seed, the seed knows its zodiac year, and
-// legendary car numbers get their drivers named. Small on purpose.
+// morse beacon into the molt seed, and the seed knows its zodiac year.
+// Small on purpose. (The NASCAR numbers lived here briefly — but bare
+// numerals in prose are dates and counts, not cars, and those numbers
+// deserve reverence, not a regex. They're on the garage wall now:
+// dale.html.)
 
 const MORSE = {
     A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.', H: '....',
@@ -1548,37 +1546,6 @@ function chineseZodiac(year) {
     const animal = ZODIAC_ANIMALS[(year - 4) % 12];
     const element = ZODIAC_ELEMENTS[Math.floor(((year - 4) % 10) / 2)];
     return `${element} ${animal}`;
-}
-
-// The numbers that don't need a series or a season attached. Contested
-// numbers resolved by historical weight: 11 is Cale's three-peat (a record
-// still unmatched), 21 is Pearson's Wood Brothers seat, 17 is DW's Daytona,
-// 20 is the Home Depot orange, 22 is Fireball — whose death gave the sport
-// fuel cells and fire suits.
-const NASCAR_LEGENDS = {
-    2: 'Rusty Wallace', 3: 'Dale Earnhardt', 4: 'Kevin Harvick', 5: 'Terry Labonte',
-    6: 'Mark Martin', 7: 'Alan Kulwicki', 9: 'Bill Elliott', 11: 'Cale Yarborough',
-    14: 'Tony Stewart', 17: 'Darrell Waltrip', 18: 'Kyle Busch', 20: 'Tony Stewart',
-    21: 'David Pearson', 22: 'Fireball Roberts', 24: 'Jeff Gordon', 28: 'Davey Allison',
-    43: 'Richard Petty', 48: 'Jimmie Johnson', 88: 'Dale Earnhardt Jr.',
-};
-
-function legendIn(text) {
-    const re = /(?:^|[^\d.])(\d{1,2})(?![\d.])/g;
-    let last = null, m;
-    while ((m = re.exec(text)) !== null) {
-        const n = +m[1];
-        if (NASCAR_LEGENDS[n]) last = n;
-    }
-    return last;
-}
-
-function updateSigils(text) {
-    const el = document.getElementById('sigilWhisper');
-    const n = legendIn(text);
-    if (n === null) { el.hidden = true; return; }
-    el.textContent = `#${n} — ${NASCAR_LEGENDS[n]}`;
-    el.hidden = false;
 }
 
 // ═══════════════════ WIRING ═══════════════════
@@ -1606,7 +1573,6 @@ function onInput() {
         }
         updateVitals(checkConvergence(currentNodes));
         renderSuggestions(computeSuggestions(text, walk.threads));
-        updateSigils(text);
         if (paused) drawFrame();
     }, 150);
 }
