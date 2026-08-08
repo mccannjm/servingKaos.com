@@ -34,7 +34,8 @@ The gate checks, in a real browser:
 - the Ariadne kernel: classification, zeusc scores (hand-checked against
   the Swift math), the molt seed, and the seed round-trip
 - the Nova door: wake-fold, the convergence starburst, settle, paste→fold,
-  and the two-tab fellowship→tornado
+  the paste-surge tornado (×3 fast — works from file:// too), its decay
+  back through fold, and the two-tab fellowship tornado
 
 It drives your installed Chrome/Chromium/Edge — no browser download. If
 yours isn't found automatically, point at it: `CHROME_PATH=/path/to/chrome npm test`.

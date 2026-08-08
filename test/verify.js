@@ -8,7 +8,8 @@
 //   3. the Ariadne kernel: classification, zeusc scores, the molt seed,
 //      and the seed round-trip (paste a seed back in, the rings return)
 //   4. the Nova door: wake-fold, convergence starburst, settle, paste→fold,
-//      and the two-tab fellowship→tornado
+//      the paste-surge tornado, its decay back through fold, and the
+//      two-tab fellowship tornado
 //
 // Uses your installed Chrome/Chromium via playwright-core (the repo's only
 // dev dependency — no browser download). Set CHROME_PATH if yours hides
@@ -175,21 +176,41 @@ async function main() {
             () => document.getElementById('novaState').textContent.includes('nova: nova'),
             null, { timeout: 3000 }).then(() => true).catch(() => false);
         check(reBurst, 'intent meets reality → the funnels touch → starburst');
+        await page.waitForTimeout(1100); // into the burst phase — the spray is out
         await page.screenshot({ path: path.join(SHOTS, 'nova-burst.png') });
+        await page.waitForFunction(
+            () => document.getElementById('novaState').textContent.includes('nova: tilt'),
+            null, { timeout: 4000 }).catch(() => {});
 
-        // Fellowship: a second tab on the same origin → tornado.
+        // Signal surge: three pastes inside 5s → tornado. Single tab,
+        // works from file:// too — no fellowship required.
+        await page.fill('#input', '[loose thread] [another one]');
+        await page.waitForTimeout(300);
+        await page.evaluate(() => {
+            const i = document.getElementById('input');
+            for (let k = 0; k < 3; k++) i.dispatchEvent(new ClipboardEvent('paste', { bubbles: true }));
+        });
+        const surge = await page.waitForFunction(
+            () => document.getElementById('novaState').textContent.includes('nova: tornado'),
+            null, { timeout: 3000 }).then(() => true).catch(() => false);
+        check(surge, 'paste ×3 in 5s = signal surge → tornado, single tab');
+        await page.waitForTimeout(1300); // the funnels ramp in over 1.2s
+        await page.screenshot({ path: path.join(SHOTS, 'nova-tornado.png') });
+
+        // Decay: the pastes age out of the 5s window → tornado unwinds to fold.
+        const decayed = await page.waitForFunction(
+            () => document.getElementById('novaState').textContent.includes('nova: fold'),
+            null, { timeout: 7000 }).then(() => true).catch(() => false);
+        check(decayed, 'surge expires → tornado decays through fold');
+
+        // Fellowship: a second tab alone spins it back up — no paste needed.
         const page2 = await context.newPage();
         watch(page2);
         await page2.goto(`${base}/ariadne.html`);
-        await page.waitForTimeout(2600); // heartbeat exchange
-        await page.evaluate(() => {
-            document.getElementById('input').dispatchEvent(new ClipboardEvent('paste', { bubbles: true }));
-        });
-        const tornado = await page.waitForFunction(
+        const tornado2 = await page.waitForFunction(
             () => document.getElementById('novaState').textContent.includes('nova: tornado'),
-            null, { timeout: 4000 }).then(() => true).catch(() => false);
-        check(tornado, 'two tabs = fellowship of 2 → tornado');
-        await page.screenshot({ path: path.join(SHOTS, 'nova-tornado.png') });
+            null, { timeout: 6000 }).then(() => true).catch(() => false);
+        check(tornado2, 'second tab = fellowship of 2 → tornado returns');
         await page2.close();
 
         check(pageErrors.length === 0, 'no page errors through the nova suite', pageErrors.join(' | '));

@@ -219,6 +219,19 @@ body {
 #novaState { color: var(--gold); letter-spacing: 0.08em; }
 #novaState.burst { text-shadow: 0 0 14px rgba(255, 215, 0, 0.9); }
 
+.nova-legend {
+    position: absolute;
+    left: 14px;
+    bottom: 10px;
+    z-index: 2;
+    font-size: 10px;
+    color: #555;
+    font-style: italic;
+    pointer-events: none;
+    max-width: calc(100% - 28px);
+    line-height: 1.6;
+}
+
 /* ── Diagnostics drawer — zeusc output ── */
 .diagnostics {
     grid-column: 1 / -1;
@@ -353,6 +366,7 @@ vvARIADNEvv</textarea>
             Write something. Place a bracket.<br>
             The shape of your thinking will appear here.
         </div>
+        <div class="nova-legend" id="novaLegend" hidden></div>
     </div>
 
     <div class="status-bar">
@@ -952,14 +966,136 @@ function layoutNova(nodes, time, breath) {
             y = src.y + (target.y - src.y) * progress;
         }
         let size = n.size;
-        // Placeholder burst: scale-pulse through the burst phase.
-        // (On the Mac this is a particle shader — still open there too.)
+        // Node scale-pulse through the burst phase — the particle spray
+        // below carries the flash itself.
         if (eff === 'nova' && progress >= 0.3) {
             const bp = (progress - 0.3) / 0.7;
             size *= 1.0 + 0.6 * Math.sin(bp * Math.PI);
         }
         return { ...n, x, y, size };
     });
+}
+
+// ── Nova FX — the tornado's body and the starburst's spray ──
+//
+// The fold transform moves NODES, but two or three nodes can't draw a
+// funnel. On the Mac the visible medium is the particle shader (the open
+// Commit 3 of the Nova plan); in canvas it's this: a fixed particle pool
+// tracing the two funnels with the same spiral math — data descending
+// the top funnel, thought rising the bottom — and a radial ring-colored
+// spray through the nova burst phase. Funnels are colored by sampling
+// the actual constellation: your rings below, pasted rings above.
+const NOVA_FX = { count: 200, parts: [], energy: 0, prevTime: -1 };
+
+function novaFxInit() {
+    if (NOVA_FX.parts.length) return;
+    for (let i = 0; i < NOVA_FX.count; i++) {
+        NOVA_FX.parts.push({
+            funnel: i % 2,                       // 0 = top (external/data), 1 = bottom (thought)
+            p: Math.random(),                    // phase along the funnel, 0 rim → 1 touch point
+            seed: Math.random() * Math.PI * 2,
+            speed: 0.25 + Math.random() * 0.5,
+            spin: 1.6 + Math.random() * 1.4,
+            size: 0.6 + Math.random() * 1.4,
+            ba: Math.random() * Math.PI * 2,     // burst direction
+            bv: 0.10 + Math.random() * 0.28,     // burst reach (normalized)
+        });
+    }
+}
+
+function novaFxPalettes() {
+    const ext = [], writer = [], all = [];
+    for (const n of currentNodes) {
+        const c = RINGS[n.ring]?.color;
+        if (!c) continue;
+        all.push(c);
+        (novaExternalIDs.has(n.id) ? ext : writer).push(c);
+    }
+    if (!ext.length) ext.push([170, 180, 210]);      // data with no color yet: pale slate
+    if (!writer.length) writer.push([255, 215, 0]);  // thought defaults to intent gold
+    if (!all.length) all.push([255, 215, 0]);
+    return { ext, writer, all };
+}
+
+// The two funnels. Energy eases toward 1 in tornado and 0 out of it, so
+// the body grows in on the ramp and dissolves through the decay — the
+// same continuity rule the node blend follows.
+function drawNovaFunnels(w, h, dt) {
+    const target = novaLastEffective === 'tornado' ? 1 : 0;
+    NOVA_FX.energy += (target - NOVA_FX.energy) * Math.min(1, dt * 4);
+    if (NOVA_FX.energy < 0.02) { NOVA_FX.energy = target === 0 ? 0 : NOVA_FX.energy; return; }
+    novaFxInit();
+    const { cx, cy } = atomCenter(currentNodes, animTime);
+    const pal = novaFxPalettes();
+    const E = NOVA_FX.energy;
+    for (const pt of NOVA_FX.parts) {
+        pt.p += dt * pt.speed * 0.4;
+        if (pt.p >= 1) { pt.p -= 1; pt.seed = Math.random() * Math.PI * 2; }
+        const dir = pt.funnel === 0 ? 1 : -1;
+        const shrink = Math.pow(1 - pt.p, 1.25);
+        const r = 0.34 * shrink + 0.015;
+        // Same spiral sense as the node transform: external spins with
+        // time, thought spins against it. The p-twist makes the helix.
+        const angle = pt.seed + animTime * pt.spin * dir + pt.p * 3.0 * dir;
+        const x = cx + Math.cos(angle) * r;
+        const y = pt.funnel === 0 ? cy - (1 - pt.p) * 0.30 : cy + (1 - pt.p) * 0.30;
+        const colors = pt.funnel === 0 ? pal.ext : pal.writer;
+        const [cr, cg, cb] = colors[Math.floor(pt.seed * 7) % colors.length];
+        const alpha = E * (0.30 + 0.45 * pt.p);
+        const sz = pt.size * (0.9 + pt.p * 0.9);
+        // Waist halo — the brightest third glows, so the touch point reads.
+        if (pt.p > 0.55) {
+            ctx.beginPath();
+            ctx.arc(x * w, y * h, sz * 2.4, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha * 0.22})`;
+            ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.arc(x * w, y * h, sz, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${alpha})`;
+        ctx.fill();
+    }
+}
+
+// The starburst spray — stateless off the machine's burst phase, so it
+// needs no arming and can never desync from the state.
+function drawNovaBurst(w, h) {
+    if (novaLastEffective !== 'nova' || novaMachine.stateProgress < 0.3) return;
+    novaFxInit();
+    const bp = (novaMachine.stateProgress - 0.3) / 0.7;
+    const { cx, cy } = atomCenter(currentNodes, animTime);
+    const { all } = novaFxPalettes();
+    const reach = Math.sqrt(bp);
+    const fade = 1 - bp;
+    ctx.lineCap = 'round';
+    for (const pt of NOVA_FX.parts) {
+        const d = pt.bv * reach;
+        const tail = Math.max(0, d - 0.02 - pt.bv * 0.10 * reach);
+        const [cr, cg, cb] = all[Math.floor(pt.seed * 13) % all.length];
+        ctx.strokeStyle = `rgba(${cr},${cg},${cb},${(0.35 + 0.3 * pt.size) * fade})`;
+        ctx.lineWidth = pt.size;
+        ctx.beginPath();
+        ctx.moveTo((cx + Math.cos(pt.ba) * tail) * w, (cy + Math.sin(pt.ba) * tail * 0.92) * h);
+        ctx.lineTo((cx + Math.cos(pt.ba) * d) * w, (cy + Math.sin(pt.ba) * d * 0.92) * h);
+        ctx.stroke();
+    }
+    // Center flash — brightest at ignition, gone by mid-burst.
+    const flashA = Math.max(0, 0.55 * (1 - bp * 1.6));
+    if (flashA > 0.01) {
+        const fr = (0.06 + bp * 0.10) * Math.min(w, h);
+        const g = ctx.createRadialGradient(cx * w, cy * h, 0, cx * w, cy * h, fr);
+        g.addColorStop(0, `rgba(255,240,200,${flashA})`);
+        g.addColorStop(1, 'rgba(255,240,200,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(cx * w, cy * h, fr, 0, Math.PI * 2); ctx.fill();
+    }
+}
+
+function novaLegendText() {
+    const tab = location.protocol === 'file:'
+        ? 'paste ×3 fast → tornado (a second tab works too, over npm run serve)'
+        : 'paste ×3 fast, or a second tab → tornado';
+    return `type → tilt · paste → fold · ${tab} · balance *want* {is} clean → nova`;
 }
 
 // ═══════════════════ RENDER ═══════════════════
@@ -1005,6 +1141,10 @@ function drawFrame() {
         ctx.beginPath(); ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2); ctx.fill();
     }
 
+    const fxDt = NOVA_FX.prevTime < 0 ? 0 : Math.min(0.1, Math.max(0, animTime - NOVA_FX.prevTime));
+    NOVA_FX.prevTime = animTime;
+    if (currentDoor === 'nova') drawNovaFunnels(w, h, fxDt);
+
     document.getElementById('emptyState').style.display = laidNodes.length === 0 ? 'block' : 'none';
     if (laidNodes.length === 0) return;
 
@@ -1047,6 +1187,8 @@ function drawFrame() {
         const ac = currentNodes.filter(n => n.ring !== 'pin').at(-1)?.content || '';
         ctx.fillText(ac.length > 50 ? ac.slice(0, 48) + '..' : ac, w / 2, h / 2);
     }
+
+    if (currentDoor === 'nova') drawNovaBurst(w, h);
 }
 
 function renderLoop() {
@@ -1185,6 +1327,7 @@ document.querySelectorAll('.door-btn').forEach(btn => {
         btn.classList.add('active');
         currentDoor = btn.dataset.door;
         document.getElementById('novaState').hidden = currentDoor !== 'nova';
+        document.getElementById('novaLegend').hidden = currentDoor !== 'nova';
         if (paused) drawFrame();
     });
 });
@@ -1244,6 +1387,7 @@ for (let i = 0; i < 60; i++)
 
 canvas = document.getElementById('constellation');
 ctx = canvas.getContext('2d');
+document.getElementById('novaLegend').textContent = novaLegendText();
 initStars();
 resizeCanvas();
 drawBackgroundStars(0);
