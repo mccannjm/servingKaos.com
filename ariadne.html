@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ariadne — the thread, live</title>
+<meta name="description" content="The Zeus kernel running in your browser. Type one bracket. The rings will find you.">
+<meta property="og:title" content="Ariadne — the thread, live">
+<meta property="og:description" content="Same classifier. Same layout math. Same colors. No server, no account, no tracking. View source — it's all here.">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --bg: #080816;
+    --surface: #0d0d1a;
+    --border: #1a1a2e;
+    --text: #c8c8d0;
+    --dim: #666680;
+    --gold: #ffd700;
+    --teal: #4ecdc4;
+    --blue: #5b8def;
+    --pink: #e07bda;
+    --green: #a0dca0;
+    --red: #ff6b6b;
+    --plain: #888;
+}
+
+html, body { height: 100%; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    overflow: hidden;
+}
+
+#star-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+#instrument {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr auto auto;
+}
+
+/* ── Top bar ── */
+.top-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8, 8, 22, 0.85);
+    flex-wrap: wrap;
+}
+
+.brand {
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--green);
+}
+
+.tagline {
+    font-size: 11px;
+    color: var(--dim);
+    font-style: italic;
+    flex: 1;
+    min-width: 180px;
+}
+
+.door-bar { display: flex; gap: 6px; }
+
+.door-btn, .action-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.door-btn:hover, .action-btn:hover { color: var(--text); }
+.door-btn.active { border-color: var(--green); color: var(--green); }
+
+.action-btn.molt { border-color: rgba(255, 215, 0, 0.25); color: var(--gold); }
+.action-btn.molt:hover { border-color: var(--gold); box-shadow: 0 0 16px rgba(255, 215, 0, 0.12); }
+
+.site-links { display: flex; gap: 12px; }
+.site-links a {
+    color: var(--dim);
+    text-decoration: none;
+    font-size: 11px;
+    transition: color 0.2s;
+}
+.site-links a:hover { color: var(--teal); }
+
+/* ── Editor pane ── */
+.editor-panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.mirror {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    line-height: 1.7;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.mirror .m-pin { text-decoration: underline; }
+
+.input-area textarea {
+    width: 100%;
+    min-height: 110px;
+    max-height: 40vh;
+    background: var(--surface);
+    color: var(--text);
+    border: none;
+    border-top: 1px solid var(--border);
+    padding: 16px 20px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.7;
+    resize: vertical;
+    outline: none;
+}
+
+.input-area textarea::placeholder { color: var(--dim); }
+
+/* ── Constellation pane ── */
+.constellation-panel { position: relative; overflow: hidden; }
+.constellation-panel canvas { width: 100%; height: 100%; display: block; }
+
+.constellation-empty {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--dim);
+    font-size: 13px;
+    line-height: 1.8;
+    pointer-events: none;
+}
+
+.constellation-empty .ce-tagline { color: var(--green); font-size: 14px; margin-bottom: 8px; }
+
+/* ── Status bar ── */
+.status-bar {
+    grid-column: 1 / -1;
+    padding: 6px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--dim);
+    flex-wrap: wrap;
+}
+
+.ring-pills { display: flex; gap: 10px; flex-wrap: wrap; }
+.ring-pill { display: flex; align-items: center; gap: 4px; }
+.ring-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+.vitals {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--dim);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 0;
+}
+.vitals:hover .zeusc { color: var(--text); }
+
+.temper-word { color: var(--green); }
+.temper-word.dark { color: var(--red); }
+
+.conv-meter {
+    display: inline-block;
+    width: 60px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.08);
+    position: relative;
+    vertical-align: middle;
+}
+.conv-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    border-radius: 2px;
+    background: var(--teal);
+    transition: width 0.4s ease, background 0.4s ease;
+}
+
+/* ── Diagnostics drawer — zeusc output ── */
+.diagnostics {
+    grid-column: 1 / -1;
+    max-height: 0;
+    overflow-y: auto;
+    border-top: 0 solid var(--border);
+    background: var(--surface);
+    transition: max-height 0.3s ease;
+    font-size: 12px;
+    line-height: 1.9;
+}
+.diagnostics.open { max-height: 28vh; border-top-width: 1px; }
+.diagnostics .d-inner { padding: 12px 20px; }
+.diag-line { white-space: pre-wrap; }
+.diag-line .sev-note { color: var(--dim); }
+.diag-line .sev-warning { color: var(--gold); }
+.diag-line .sev-error { color: var(--red); }
+.diag-head { color: var(--dim); font-style: italic; margin-bottom: 6px; }
+
+/* ── Molt overlay ── */
+.molt-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 8, 22, 0.88);
+    backdrop-filter: blur(6px);
+    padding: 24px;
+}
+.molt-overlay.open { display: flex; }
+
+.molt-card {
+    max-width: 640px;
+    width: 100%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid rgba(255, 215, 0, 0.25);
+    border-radius: 10px;
+    box-shadow: 0 0 60px rgba(255, 215, 0, 0.08);
+}
+
+.molt-card header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.molt-card header .t { color: var(--gold); font-size: 13px; letter-spacing: 0.15em; }
+
+.molt-card pre {
+    flex: 1;
+    margin: 0;
+    padding: 18px 20px;
+    overflow: auto;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.molt-card footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--dim);
+    font-style: italic;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    body { overflow: auto; }
+    #instrument {
+        height: auto;
+        min-height: 100vh;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 45vh auto auto;
+    }
+    .editor-panel { border-right: none; border-bottom: 1px solid var(--border); }
+    .constellation-panel { min-height: 45vh; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="star-canvas" aria-hidden="true"></canvas>
+
+<div id="instrument">
+
+    <div class="top-bar">
+        <span class="brand">ARIADNE</span>
+        <span class="tagline">the thread — the Zeus kernel, live in your browser. no server. no account. view source.</span>
+        <div class="door-bar" role="group" aria-label="Constellation doors">
+            <button class="door-btn active" data-door="atom" aria-label="Atom door — nodes orbit a nucleus in ring shells">Atom</button>
+            <button class="door-btn" data-door="breathing" aria-label="Breathing door — the constellation inhales and exhales">Breathing</button>
+            <button class="door-btn" data-door="lanes" aria-label="Lanes door — one horizontal lane per ring">Lanes</button>
+            <button class="door-btn" id="pauseBtn" aria-label="Pause or resume the animation">pause</button>
+        </div>
+        <button class="action-btn molt" id="moltBtn" aria-label="Molt — compress this session into a seed you can share">molt</button>
+        <div class="site-links">
+            <a href="proofs.html">the receipts</a>
+            <a href="index.html">the forest</a>
+        </div>
+    </div>
+
+    <div class="editor-panel">
+        <div class="mirror" id="mirror" aria-hidden="true"></div>
+        <div class="input-area">
+            <label for="input" class="sr-only" style="position:absolute;left:-9999px;">Write bracket-notation text</label>
+            <textarea id="input" spellcheck="false" aria-label="Write here. Brackets classify your text into rings as you type.">*resurrect the instrument* {it was buried in the git log for five months}
+{{what else is down there?}} [does the seed survive the paste?]
+^watch me watching the rings^ %^&March 20 → August 8%^&
+:the thread was never cut:
+vvARIADNEvv</textarea>
+        </div>
+    </div>
+
+    <div class="constellation-panel">
+        <canvas id="constellation" role="img" aria-label="Constellation: empty"></canvas>
+        <div class="constellation-empty" id="emptyState">
+            <div class="ce-tagline">The constellation is listening.</div>
+            Write something. Place a bracket.<br>
+            The shape of your thinking will appear here.
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div class="ring-pills" id="ringPills"></div>
+        <div id="openThreadsLabel" style="font-style:italic" aria-live="polite"></div>
+        <button class="vitals" id="vitalsBtn" aria-label="Show convergence diagnostics" aria-expanded="false">
+            <span>temper: <span class="temper-word" id="temperWord">rest</span></span>
+            <span class="conv-meter" aria-hidden="true"><span class="conv-fill" id="convFill" style="width:100%"></span></span>
+            <span id="convPct">100%</span>
+            <span class="zeusc" id="zeuscSummary">zeusc: clean</span>
+        </button>
+    </div>
+
+    <div class="diagnostics" id="diagnostics">
+        <div class="d-inner">
+            <div class="diag-head">zeusc — the convergence checker. Zeus's type system, checking your rings. (ConvergenceChecker.swift, ported)</div>
+            <div id="diagList"></div>
+        </div>
+    </div>
+
+</div>
+
+<div class="molt-overlay" id="moltOverlay" role="dialog" aria-modal="true" aria-label="Molt seed">
+    <div class="molt-card">
+        <header>
+            <span class="t">MOLT — THE SEED</span>
+            <button class="action-btn" id="moltClose" aria-label="Close">close</button>
+        </header>
+        <pre id="moltText"></pre>
+        <footer>
+            <span>the seed is bracket notation. paste it into any Ariadne — or any text field on earth — and it wakes.</span>
+            <button class="action-btn molt" id="moltCopy" aria-label="Copy seed to clipboard">copy seed</button>
+        </footer>
+    </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  THE KERNEL — ported from Zeus (Swift/Metal) to vanilla JS + Canvas.
+//
+//  Sources of truth in the Zeus repo:
+//    BracketDefinitions.swift  → BRACKETS (same 11 definitions, same
+//                                longest-first order — the ordering is
+//                                load-bearing, first match wins)
+//    RingClassifier.swift      → classify()
+//    TapestryParser.swift      → parseNodes() (FNV-1a IDs, weight merge)
+//    ConvergenceChecker.swift  → checkConvergence() — the type checker
+//    Temper.swift              → the temper vocabulary
+//    RingColors.swift          → RINGS
+//
+//  First ported March 20, 2026. Buried under the forest March 27.
+//  Resurrected August 8. The thread was never cut.
+// ═══════════════════════════════════════════════════════════════════
+
+const RINGS = {
+    intent:    { color: [255, 215, 0],   css: 'var(--gold)',  name: 'Intent' },
+    reality:   { color: [78, 205, 196],  css: 'var(--teal)',  name: 'Reality' },
+    gap:       { color: [91, 141, 239],  css: 'var(--blue)',  name: 'Gap' },
+    crossRing: { color: [224, 123, 218], css: 'var(--pink)',  name: 'Cross-Ring' },
+    pin:       { color: [255, 107, 107], css: 'var(--red)',   name: 'Pin' },
+    aether:    { color: [160, 220, 160], css: 'var(--green)', name: 'Aether' },
+};
+
+const BRACKETS = [
+    { open: '%^&', close: '%^&', ring: 'crossRing', type: 'temporal',    name: 'Temporal' },
+    { open: '{{',  close: '}}',  ring: 'intent',    type: 'doubleCurly', name: 'Question' },
+    { open: '{',   close: '}',   ring: 'reality',   type: 'curly',       name: 'Context' },
+    { open: '[',   close: ']',   ring: 'gap',       type: 'square',      name: 'Thread' },
+    { open: '(',   close: ')',   ring: 'gap',       type: 'paren',       name: 'Aside' },
+    { open: ':',   close: ':',   ring: 'aether',    type: 'aether',      name: 'Aether' },
+    { open: '!',   close: '!',   ring: 'intent',    type: 'exclamation', name: 'Exclamation' },
+    { open: '|',   close: '|',   ring: 'crossRing', type: 'meta',        name: 'Meta' },
+    { open: '^',   close: '^',   ring: 'crossRing', type: 'caret',       name: 'Detach' },
+    { open: '*',   close: '*',   ring: 'intent',    type: 'emphasis',    name: 'Emphasis' },
+    { open: '#',   close: '#',   ring: 'reality',   type: 'hash',        name: 'Note' },
+];
+
+const MULTI_CHAR = BRACKETS.filter(b => b.open.length > 1);
+const SINGLE_CHAR = BRACKETS.filter(b => b.open.length === 1);
+const PURE_CLOSERS = new Set(['}', ')', ']']);
+const PIN_RE = /vv([A-Za-z][A-Za-z0-9_-]*)vv/g;
+
+// ── RingClassifier — character-level, stateless, pure ──
+function classify(text) {
+    if (!text) return [];
+    const chars = [...text], count = chars.length;
+    const charRing = new Array(count).fill(null), charDepth = new Array(count).fill(0);
+    PIN_RE.lastIndex = 0; let m;
+    while ((m = PIN_RE.exec(text)) !== null) {
+        const start = [...text.slice(0, m.index)].length, len = [...m[0]].length;
+        for (let j = start; j < start + len && j < count; j++) charRing[j] = 'pin';
+    }
+    const stack = []; let i = 0;
+    while (i < count) {
+        if (charRing[i] === 'pin') { i++; continue; }
+        let matched = false;
+        for (const b of MULTI_CHAR) {
+            const ol = b.open.length;
+            if (i + ol <= count && chars.slice(i, i + ol).join('') === b.open) {
+                if (stack.length > 0 && stack[stack.length - 1].close === b.open) {
+                    stack.pop();
+                    for (let j = i; j < i + ol; j++) { charRing[j] = b.ring; charDepth[j] = stack.length; }
+                } else {
+                    stack.push(b);
+                    for (let j = i; j < i + ol; j++) { charRing[j] = b.ring; charDepth[j] = stack.length; }
+                }
+                i += ol; matched = true; break;
+            }
+        }
+        if (matched) continue;
+        const ch = chars[i];
+        if (stack.length > 0 && stack[stack.length - 1].close === ch && stack[stack.length - 1].close.length === 1) {
+            const top = stack.pop(); charRing[i] = top.ring; charDepth[i] = stack.length; i++; continue;
+        }
+        if (!PURE_CLOSERS.has(ch)) {
+            const b = SINGLE_CHAR.find(b => b.open === ch);
+            if (b) { stack.push(b); charRing[i] = b.ring; charDepth[i] = stack.length; i++; continue; }
+        }
+        if (stack.length > 0) { charRing[i] = stack[stack.length - 1].ring; charDepth[i] = stack.length; }
+        i++;
+    }
+    const segments = [];
+    let sr = charRing[0], st = chars[0], sd = charDepth[0];
+    for (let j = 1; j < count; j++) {
+        if (charRing[j] === sr) st += chars[j];
+        else { segments.push({ text: st, ring: sr, depth: sd }); sr = charRing[j]; st = chars[j]; sd = charDepth[j]; }
+    }
+    segments.push({ text: st, ring: sr, depth: sd });
+    return segments;
+}
+
+// ── TapestryParser — one stack walk, two outputs: closed brackets
+//    become nodes; whatever's left on the stack is the open threads.
+//    Same content revisited gains weight instead of duplicating.
+//
+//    Resurrection note: the March 2026 port only ever closed TOGGLE
+//    brackets here (close === open, like * * and ^ ^) — { } [ ] ( )
+//    {{ }} never closed, so their nodes never existed and closed
+//    threads read as open. classify() above was right all along,
+//    which is why the mirror hid it. Fixed August 8: the walk now
+//    checks the stack top's closer first, like the Swift parser. ──
+function fnv1a(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+    return h.toString(16);
+}
+
+const GLYPH_STRIP = /[{}\[\]()*^|:!#]|%\^&/g;
+
+function parseWalk(text) {
+    const chars = [...text], raw = [], stack = []; let i = 0; const occ = {};
+    while (i < chars.length) {
+        // 1. Does this position close the innermost open bracket?
+        if (stack.length > 0) {
+            const top = stack[stack.length - 1];
+            const cl = top.def.close.length;
+            if (i + cl <= chars.length && chars.slice(i, i + cl).join('') === top.def.close) {
+                stack.pop();
+                const content = chars.slice(top.cs, i).join('').trim();
+                if (content.length > 0) {
+                    const b = top.def;
+                    const key = `${b.type}-${occ[b.type] || 0}`;
+                    occ[b.type] = (occ[b.type] || 0) + 1;
+                    raw.push({ id: fnv1a(key), content, ring: b.ring, type: b.type, depth: stack.length, weight: 1.0 });
+                }
+                i += cl; continue;
+            }
+        }
+        // 2. Does it open a bracket? (longest-first — the ordering is load-bearing)
+        let matched = false;
+        for (const b of BRACKETS) {
+            const ol = b.open.length;
+            if (i + ol <= chars.length && chars.slice(i, i + ol).join('') === b.open) {
+                stack.push({ def: b, pos: i, cs: i + ol });
+                i += ol; matched = true; break;
+            }
+        }
+        if (!matched) i++;
+    }
+    PIN_RE.lastIndex = 0; let pm;
+    while ((pm = PIN_RE.exec(text)) !== null) {
+        raw.push({ id: fnv1a(`pin-${pm[1]}`), content: pm[1], ring: 'pin', type: 'pin', depth: 0, weight: 2.0 });
+    }
+    // Weight merge: same (ring, content) accumulates instead of duplicating.
+    const seen = new Map();
+    for (const n of raw) {
+        const k = `${n.ring} ${n.content}`;
+        const prev = seen.get(k);
+        if (prev) prev.weight += 0.5; else seen.set(k, n);
+    }
+    const threads = stack.map(e => {
+        const s = Math.min(e.cs, chars.length), end = Math.min(s + 40, chars.length);
+        const preview = s < end ? chars.slice(s, end).join('').replace(GLYPH_STRIP, ' ').replace(/\s+/g, ' ').trim() : '';
+        return { ring: e.def.ring, name: e.def.name, preview };
+    });
+    return { nodes: [...seen.values()], threads };
+}
+
+function parseNodes(text) { return parseWalk(text).nodes; }
+function openThreads(text) { return parseWalk(text).threads; }
+
+// ── ConvergenceChecker — the type checker. Six cognitive types;
+//    divergence is a type error. Check 3 (dead pins) needs the full
+//    edge graph and lives only in the native instrument. ──
+function checkConvergence(nodes) {
+    if (!nodes.length) return { diagnostics: [{ severity: 'note', ring: null, message: 'Empty tapestry — no types to check' }], score: 1.0, temper: 'rest' };
+    const counts = {}; for (const n of nodes) counts[n.ring] = (counts[n.ring] || 0) + 1;
+    const total = nodes.length;
+    const intent = counts.intent || 0, reality = counts.reality || 0, gap = counts.gap || 0, cross = counts.crossRing || 0;
+    const diags = [], factors = [];
+
+    let ir;
+    if (intent > 0 && reality > 0) ir = Math.min(intent, reality) / Math.max(intent, reality);
+    else if (intent === 0 && reality === 0) ir = 1; else ir = 0;
+    factors.push(ir);
+    if (intent > reality * 3 && intent > 3)
+        diags.push({ severity: 'warning', ring: 'intent', message: `Intent outnumbers Reality ${intent}:${reality} — aspiration without grounding. Like declaring ${intent} protocols with ${reality} implementations.` });
+    else if (reality > intent * 3 && reality > 3)
+        diags.push({ severity: 'note', ring: 'reality', message: `Reality outnumbers Intent ${reality}:${intent} — grounded but directionless. The code runs, but where is it going?` });
+    else if (intent > 0 && reality > 0 && ir > 0.5)
+        diags.push({ severity: 'note', ring: null, message: `Intent-Reality balance ${intent}:${reality} — types converge. What's wanted matches what IS.` });
+
+    const gr = gap / total;
+    factors.push(Math.max(0, 1 - gr * 2));
+    if (gr > 0.5 && gap > 5)
+        diags.push({ severity: 'error', ring: 'gap', message: `Gap accumulation critical: ${gap}/${total} nodes are open threads — memory leak. Close some or they decay into noise.` });
+    else if (gr > 0.3 && gap > 3)
+        diags.push({ severity: 'warning', ring: 'gap', message: `${gap} open threads (${Math.round(gr * 100)}% of tapestry) — gap pressure rising. Like ${gap} TODOs in one file.` });
+
+    if (cross > 0 && intent + reality === 0) {
+        diags.push({ severity: 'warning', ring: 'crossRing', message: `${cross} meta-observations with no Intent or Reality — observing nothing. Comments in an empty file.` });
+        factors.push(0.3);
+    } else factors.push(1);
+
+    let maxR = null, maxC = 0;
+    for (const [r, c] of Object.entries(counts)) if (c > maxC) { maxC = c; maxR = r; }
+    if (maxR && maxC / total > 0.7 && total > 5) {
+        diags.push({ severity: 'warning', ring: maxR, message: `${RINGS[maxR].name} dominates at ${Math.round(maxC / total * 100)}% — single-ring thinking. The rings exist because thinking has texture.` });
+        factors.push(0.5);
+    } else factors.push(1);
+
+    const maxD = Math.max(...nodes.map(n => n.depth), 0);
+    if (maxD > 6)
+        diags.push({ severity: 'note', ring: null, message: `Nesting depth ${maxD} — deep recursion in thought. Not wrong, but worth noticing.` });
+
+    const score = factors.reduce((a, b) => a + b, 0) / factors.length;
+    let temper;
+    if (diags.some(d => d.severity === 'error')) temper = score < 0.3 ? 'woe' : 'friction';
+    else if (diags.some(d => d.severity === 'warning')) temper = score > 0.6 ? 'friction' : 'wonder';
+    else if (score > 0.8) temper = ir > 0.7 ? 'clarity' : 'frolic';
+    else temper = 'rest';
+    return { diagnostics: diags, score, temper };
+}
+
+const DARK_TEMPERS = new Set(['woe', 'dread', 'malice', 'friction']);
+
+// ── The Loom — molt this session into a seed. The seed is bracket
+//    notation, so any classifier surface can wake it. ──
+function moltSeed(nodes, text, report) {
+    const pins = nodes.filter(n => n.ring === 'pin');
+    const heavy = nodes.filter(n => n.ring !== 'pin').sort((a, b) => b.weight - a.weight).slice(0, 7);
+    const threads = openThreads(text);
+    const d = new Date().toISOString().slice(0, 10);
+    let out = `: molt ${d} — ariadne (browser) — temper ${report.temper} — convergence ${Math.round(report.score * 100)}% :\n`;
+    for (const p of pins) out += `vv${p.content}vv\n`;
+    for (const n of heavy) {
+        const b = BRACKETS.find(x => x.type === n.type);
+        if (b) out += `${b.open}${n.content}${b.close}\n`;
+    }
+    for (const t of threads) out += `[ still open — ${t.preview || t.name} ]\n`;
+    out += `: paste this seed into any Ariadne to wake it :`;
+    return out;
+}
+
+// ═══════════════════ DOORS — layout math ═══════════════════
+
+const SHELL_ORDER = ['pin', 'intent', 'reality', 'aether', 'crossRing', 'gap'];
+
+function layoutAtom(nodes, time, breath) {
+    if (!nodes.length) return [];
+    const mw = Math.max(...nodes.map(n => n.weight), 1);
+    const nr = 0.12, is = 0.14, os = 0.42, ts = 6;
+    const ar = nodes.filter(n => n.ring !== 'pin').at(-1)?.ring || 'reality';
+    const asi = SHELL_ORDER.indexOf(ar);
+    const na = asi * 1.047 + time * 0.05;
+    const asf = asi / (ts - 1);
+    const dr = (is + (os - is) * asf) * 0.12;
+    const cx = 0.5 + Math.cos(na) * dr, cy = 0.5 + Math.sin(na) * dr;
+    const buckets = {};
+    for (const n of nodes) (buckets[n.ring] = buckets[n.ring] || []).push(n);
+    const laid = [];
+    for (let si = 0; si < SHELL_ORDER.length; si++) {
+        const ring = SHELL_ORDER[si], sn = buckets[ring];
+        if (!sn?.length) continue;
+        const sf = si / (ts - 1), br2 = is + (os - is) * sf;
+        const breathR = nr + (br2 - nr) * breath;
+        const ia = ring === ar, cf = ia ? 0.85 : 1.05, cr = breathR * cf, cnt = sn.length;
+        for (let ni = 0; ni < cnt; ni++) {
+            const node = sn[ni], ba = (ni / cnt) * Math.PI * 2;
+            const so = si * 0.618 * Math.PI, d = time * (0.08 + si * 0.02), a = ba + so + d;
+            const wf = node.weight / mw, wp = (1 - wf) * 0.06, r = cr - wp;
+            const wb = Math.sin(time * 0.3 + ni * 2.39) * 0.008;
+            const x = cx + Math.cos(a) * (r + wb), y = cy + Math.sin(a) * (r + wb);
+            const pb = 1 - sf * 0.3, bs = 0.7 + breath * 0.4;
+            const sz = ((node.ring === 'pin' ? 36 : 18) + wf * 20) * bs * pb;
+            const wo = 0.2 + wf * 0.8;
+            const op = node.ring === 'pin' ? 1 : breath < 0.3 ? wo * (0.4 + wf * 0.6) : wo;
+            laid.push({ ...node, x, y, size: sz, opacity: op, isActive: ia, shell: si });
+        }
+    }
+    return laid;
+}
+
+function layoutBreathing(nodes, time, breath) {
+    if (!nodes.length) return [];
+    const mw = Math.max(...nodes.map(n => n.weight), 1);
+    return nodes.map((node, i) => {
+        const wf = node.weight / mw;
+        const br = (0.1 + (1 - wf) * 0.35) * (0.5 + breath * 0.5);
+        const a = (i / nodes.length) * Math.PI * 2 + time * 0.03;
+        return { ...node, x: 0.5 + Math.cos(a) * br, y: 0.5 + Math.sin(a) * br,
+            size: (node.ring === 'pin' ? 34 : 16) + wf * 18,
+            opacity: node.ring === 'pin' ? 1 : 0.3 + wf * 0.7, isActive: false, shell: 0 };
+    });
+}
+
+function layoutLanes(nodes, time) {
+    if (!nodes.length) return [];
+    const mw = Math.max(...nodes.map(n => n.weight), 1);
+    const ly = { pin: 0.1, intent: 0.25, reality: 0.4, aether: 0.55, crossRing: 0.7, gap: 0.85 };
+    const lc = {};
+    return nodes.map(node => {
+        lc[node.ring] = (lc[node.ring] || 0) + 1;
+        const total = nodes.filter(n => n.ring === node.ring).length;
+        const x = 0.1 + (lc[node.ring] / (total + 1)) * 0.8;
+        const y = (ly[node.ring] || 0.5) + Math.sin(time * 0.2 + lc[node.ring] * 1.7) * 0.01;
+        const wf = node.weight / mw;
+        return { ...node, x, y, size: (node.ring === 'pin' ? 32 : 14) + wf * 16,
+            opacity: node.ring === 'pin' ? 1 : 0.3 + wf * 0.7, isActive: false, shell: 0 };
+    });
+}
+
+// ═══════════════════ RENDER ═══════════════════
+
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let canvas, ctx, animTime = 0, currentDoor = 'atom', currentNodes = [], laidNodes = [];
+let paused = reducedMotion, lastInputTime = 0, lastFrameTime = 0;
+let lastReport = { diagnostics: [], score: 1, temper: 'rest' };
+let stars = [];
+
+function initStars() {
+    stars = [];
+    for (let i = 0; i < 120; i++)
+        stars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2 + 0.3,
+            twinkle: Math.random() * Math.PI * 2, speed: Math.random() * 0.5 + 0.3 });
+}
+
+function resizeCanvas() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    const sc = document.getElementById('star-canvas');
+    sc.width = window.innerWidth; sc.height = window.innerHeight;
+    if (paused) drawFrame();
+}
+
+function drawFrame() {
+    const w = canvas.width / devicePixelRatio, h = canvas.height / devicePixelRatio;
+    const breath = 0.5 + 0.5 * Math.sin(animTime * 0.4);
+    const fn = currentDoor === 'breathing' ? layoutBreathing : currentDoor === 'lanes' ? layoutLanes : layoutAtom;
+    laidNodes = fn(currentNodes, animTime, breath);
+
+    ctx.clearRect(0, 0, w, h);
+    for (const s of stars) {
+        const a = 0.3 + 0.3 * Math.sin(animTime * s.speed + s.twinkle);
+        ctx.fillStyle = `rgba(200,200,220,${a})`;
+        ctx.beginPath(); ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    document.getElementById('emptyState').style.display = laidNodes.length === 0 ? 'block' : 'none';
+    if (laidNodes.length === 0) return;
+
+    ctx.lineWidth = 0.5;
+    const rg = {};
+    for (const n of laidNodes) (rg[n.ring] = rg[n.ring] || []).push(n);
+    for (const ring of Object.keys(rg)) {
+        const g = rg[ring]; if (g.length < 2) continue;
+        const [r, gr, b] = RINGS[ring]?.color || [136, 136, 136];
+        ctx.strokeStyle = `rgba(${r},${gr},${b},0.15)`;
+        for (let i = 0; i < g.length; i++) for (let j = i + 1; j < g.length; j++) {
+            ctx.beginPath(); ctx.moveTo(g[i].x * w, g[i].y * h); ctx.lineTo(g[j].x * w, g[j].y * h); ctx.stroke();
+        }
+    }
+
+    for (const node of laidNodes) {
+        const [r, g, b] = RINGS[node.ring]?.color || [136, 136, 136];
+        const nx = node.x * w, ny = node.y * h, nrd = node.size / 2;
+        const grad = ctx.createRadialGradient(nx, ny, 0, nx, ny, nrd * 2.5);
+        grad.addColorStop(0, `rgba(${r},${g},${b},${node.opacity * 0.3})`);
+        grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(nx, ny, nrd * 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(${r},${g},${b},${node.opacity})`;
+        ctx.beginPath(); ctx.arc(nx, ny, nrd, 0, Math.PI * 2); ctx.fill();
+        if (node.isActive) {
+            ctx.strokeStyle = `rgba(${r},${g},${b},${node.opacity * 0.6})`; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(nx, ny, nrd + 4, 0, Math.PI * 2); ctx.stroke();
+        }
+        if (nrd > 8) {
+            ctx.fillStyle = `rgba(255,255,255,${node.opacity * 0.8})`;
+            ctx.font = `${Math.max(9, Math.min(12, nrd * 0.7))}px 'SF Mono',monospace`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(node.content.length > 20 ? node.content.slice(0, 18) + '..' : node.content, nx, ny);
+        }
+    }
+
+    if (currentDoor === 'atom' && currentNodes.length > 0) {
+        ctx.fillStyle = 'rgba(200,200,220,0.08)'; ctx.font = '11px "SF Mono",monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const ac = currentNodes.filter(n => n.ring !== 'pin').at(-1)?.content || '';
+        ctx.fillText(ac.length > 50 ? ac.slice(0, 48) + '..' : ac, w / 2, h / 2);
+    }
+}
+
+function renderLoop() {
+    if (paused) return;
+    const now = performance.now();
+    const idle = now - lastInputTime > 3000;
+    const minInterval = idle ? 250 : 16;
+    if (now - lastFrameTime < minInterval) { requestAnimationFrame(renderLoop); return; }
+    lastFrameTime = now;
+    animTime += idle ? 0.004 : 0.016;
+    drawFrame();
+    requestAnimationFrame(renderLoop);
+}
+
+// ═══════════════════ MIRROR + STATUS ═══════════════════
+
+function renderMirror(segments) {
+    const mirror = document.getElementById('mirror');
+    mirror.innerHTML = '';
+    for (const seg of segments) {
+        const span = document.createElement('span');
+        span.textContent = seg.text;
+        if (seg.ring && RINGS[seg.ring]) {
+            span.style.color = RINGS[seg.ring].css;
+            if (seg.depth > 1) span.style.fontWeight = '600';
+            if (seg.ring === 'pin') span.className = 'm-pin';
+        } else { span.style.color = 'var(--plain)'; }
+        mirror.appendChild(span);
+    }
+}
+
+function updateStatus(segments, text) {
+    const counts = {};
+    for (const s of segments) if (s.ring) counts[s.ring] = (counts[s.ring] || 0) + 1;
+    const pills = document.getElementById('ringPills');
+    pills.innerHTML = '';
+    for (const [ring, info] of Object.entries(RINGS)) {
+        if (counts[ring] > 0) {
+            const pill = document.createElement('span');
+            pill.className = 'ring-pill';
+            const dot = document.createElement('span');
+            dot.className = 'ring-dot'; dot.style.background = info.css;
+            pill.appendChild(dot);
+            pill.appendChild(document.createTextNode(`${info.name} ${counts[ring]}`));
+            pills.appendChild(pill);
+        }
+    }
+    const threads = openThreads(text);
+    document.getElementById('openThreadsLabel').textContent =
+        threads.length > 0 ? `${threads.length} open thread${threads.length > 1 ? 's' : ''}` : '';
+}
+
+function updateVitals(report) {
+    lastReport = report;
+    const tw = document.getElementById('temperWord');
+    tw.textContent = report.temper;
+    tw.classList.toggle('dark', DARK_TEMPERS.has(report.temper));
+    const pct = Math.round(report.score * 100);
+    document.getElementById('convPct').textContent = pct + '%';
+    const fill = document.getElementById('convFill');
+    fill.style.width = pct + '%';
+    fill.style.background = pct > 70 ? 'var(--teal)' : pct > 40 ? 'var(--gold)' : 'var(--red)';
+    const errs = report.diagnostics.filter(d => d.severity === 'error').length;
+    const warns = report.diagnostics.filter(d => d.severity === 'warning').length;
+    const notes = report.diagnostics.filter(d => d.severity === 'note').length;
+    const parts = [];
+    if (errs) parts.push(`${errs} error${errs > 1 ? 's' : ''}`);
+    if (warns) parts.push(`${warns} warning${warns > 1 ? 's' : ''}`);
+    if (notes) parts.push(`${notes} note${notes > 1 ? 's' : ''}`);
+    document.getElementById('zeuscSummary').textContent = 'zeusc: ' + (parts.length ? parts.join(', ') : 'clean');
+
+    const list = document.getElementById('diagList');
+    list.innerHTML = '';
+    for (const d of report.diagnostics) {
+        const line = document.createElement('div');
+        line.className = 'diag-line';
+        const sev = document.createElement('span');
+        sev.className = 'sev-' + d.severity;
+        sev.textContent = d.severity + ': ';
+        line.appendChild(sev);
+        line.appendChild(document.createTextNode(d.message));
+        list.appendChild(line);
+    }
+
+    // Constellation description for screen readers
+    const nodeCount = currentNodes.length;
+    let desc = 'Constellation: empty';
+    if (nodeCount > 0) {
+        const rc = {};
+        for (const n of currentNodes) rc[n.ring] = (rc[n.ring] || 0) + 1;
+        const domRing = Object.entries(rc).sort((a, b) => b[1] - a[1])[0][0];
+        desc = `Constellation: ${nodeCount} node${nodeCount > 1 ? 's' : ''}, ${RINGS[domRing].name} dominant, temper ${report.temper}, convergence ${pct}%`;
+    }
+    canvas.setAttribute('aria-label', desc);
+}
+
+// ═══════════════════ WIRING ═══════════════════
+
+let parseTimer = null;
+function onInput() {
+    lastInputTime = performance.now();
+    const input = document.getElementById('input');
+    const text = input.value;
+    const segments = classify(text);
+    renderMirror(segments);
+    updateStatus(segments, text);
+    clearTimeout(parseTimer);
+    parseTimer = setTimeout(() => {
+        currentNodes = parseNodes(text);
+        updateVitals(checkConvergence(currentNodes));
+        if (paused) drawFrame();
+    }, 150);
+}
+
+document.getElementById('input').addEventListener('input', onInput);
+
+document.querySelectorAll('.door-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        if (btn.id === 'pauseBtn') return;
+        document.querySelector('.door-btn.active:not(#pauseBtn)')?.classList.remove('active');
+        btn.classList.add('active');
+        currentDoor = btn.dataset.door;
+        if (paused) drawFrame();
+    });
+});
+
+const pauseBtn = document.getElementById('pauseBtn');
+function setPaused(p) {
+    paused = p;
+    pauseBtn.textContent = paused ? 'play' : 'pause';
+    pauseBtn.classList.toggle('active', paused);
+    if (!paused) { lastFrameTime = 0; requestAnimationFrame(renderLoop); }
+    else drawFrame();
+}
+pauseBtn.addEventListener('click', () => setPaused(!paused));
+
+document.getElementById('vitalsBtn').addEventListener('click', () => {
+    const d = document.getElementById('diagnostics');
+    const open = d.classList.toggle('open');
+    document.getElementById('vitalsBtn').setAttribute('aria-expanded', open);
+});
+
+// Molt
+const moltOverlay = document.getElementById('moltOverlay');
+document.getElementById('moltBtn').addEventListener('click', () => {
+    document.getElementById('moltText').textContent =
+        moltSeed(currentNodes, document.getElementById('input').value, lastReport);
+    moltOverlay.classList.add('open');
+});
+document.getElementById('moltClose').addEventListener('click', () => moltOverlay.classList.remove('open'));
+moltOverlay.addEventListener('click', e => { if (e.target === moltOverlay) moltOverlay.classList.remove('open'); });
+document.getElementById('moltCopy').addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(document.getElementById('moltText').textContent);
+        document.getElementById('moltCopy').textContent = 'copied';
+        setTimeout(() => document.getElementById('moltCopy').textContent = 'copy seed', 1500);
+    } catch { /* clipboard unavailable — the text is selectable */ }
+});
+
+// Background stars (subtle, behind the whole instrument)
+function drawBackgroundStars(t) {
+    const sc = document.getElementById('star-canvas');
+    const sctx = sc.getContext('2d');
+    sctx.clearRect(0, 0, sc.width, sc.height);
+    // static faint field — the instrument's canvas has the live stars
+    for (let i = 0; i < bgStars.length; i++) {
+        const s = bgStars[i];
+        sctx.beginPath();
+        sctx.arc(s.x * sc.width, s.y * sc.height, s.r, 0, Math.PI * 2);
+        sctx.fillStyle = `rgba(180,190,220,${s.a})`;
+        sctx.fill();
+    }
+}
+const bgStars = [];
+for (let i = 0; i < 60; i++)
+    bgStars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1 + 0.2, a: Math.random() * 0.08 + 0.02 });
+
+// ═══════════════════ INIT ═══════════════════
+
+canvas = document.getElementById('constellation');
+ctx = canvas.getContext('2d');
+initStars();
+resizeCanvas();
+drawBackgroundStars(0);
+window.addEventListener('resize', () => { resizeCanvas(); drawBackgroundStars(0); });
+
+// Pre-seeded text: classify immediately so the rings appear before the first keystroke.
+lastInputTime = performance.now();
+onInput();
+if (reducedMotion) { setPaused(true); setTimeout(drawFrame, 200); }
+else { requestAnimationFrame(renderLoop); }
+</script>
+
+</body>
+</html>

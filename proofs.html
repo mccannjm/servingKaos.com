@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zeus — The Receipts</title>
+    <meta name="description" content="The slideshow made a claim. Claims are intent. This page is the reality ring.">
+    <meta property="og:title" content="Zeus — The Receipts">
+    <meta property="og:description" content="123 days. 83 commits. 197 Swift files. A truck, the Treasury, and a constellation. Every number is from the git log.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080816;
+            --gold: #ffd700;
+            --teal: #4ecdc4;
+            --blue: #5b8def;
+            --pink: #e07bda;
+            --green: #a0dca0;
+            --red: #ff6b6b;
+            --corp: #999;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: var(--bg);
+            color: #888;
+            overflow-x: hidden;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide {
+            position: relative;
+            z-index: 1;
+            min-height: 75vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 50px 40px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .slide.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .big {
+            font-size: 3em;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+
+        .medium {
+            font-size: 1.8em;
+            font-weight: 200;
+            letter-spacing: 0.1em;
+        }
+
+        .small {
+            font-size: 1em;
+            color: #666;
+            margin-top: 16px;
+            line-height: 1.8;
+            max-width: 540px;
+        }
+
+        .whisper {
+            color: #555;
+            font-size: 0.85em;
+            margin-top: 20px;
+            line-height: 1.8;
+        }
+
+        .n-intent { color: var(--gold); }
+        .n-reality { color: var(--teal); }
+        .n-gap { color: var(--blue); }
+        .n-cross { color: var(--pink); }
+        .n-aether { color: var(--green); }
+        .n-pin { color: var(--red); }
+
+        /* ── Stat grid ── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 18px;
+            margin-top: 32px;
+            max-width: 720px;
+            width: 100%;
+        }
+
+        .stat {
+            padding: 18px 12px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+
+        .stat .num {
+            font-size: 1.9em;
+            font-weight: 200;
+            color: var(--teal);
+        }
+
+        .stat .lbl {
+            font-size: 0.72em;
+            color: #555;
+            margin-top: 6px;
+            letter-spacing: 0.08em;
+            line-height: 1.5;
+        }
+
+        /* ── Compiler table ── */
+        .compiler-table {
+            margin-top: 28px;
+            max-width: 640px;
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+            text-align: left;
+        }
+
+        .compiler-table th {
+            padding: 10px 14px;
+            color: #555;
+            font-weight: 400;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .compiler-table td {
+            padding: 9px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            line-height: 1.6;
+            vertical-align: top;
+        }
+
+        .compiler-table td:first-child { color: #666; white-space: nowrap; }
+        .compiler-table td:last-child { color: var(--teal); }
+
+        /* ── Commit cards ── */
+        .commit-card {
+            margin-top: 26px;
+            max-width: 620px;
+            width: 100%;
+            text-align: left;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .commit-card .sha-bar {
+            padding: 10px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            gap: 12px;
+            align-items: baseline;
+            font-size: 0.8em;
+            flex-wrap: wrap;
+        }
+
+        .commit-card .sha { color: var(--gold); }
+        .commit-card .subject { color: #999; }
+
+        .commit-card .strands {
+            padding: 14px 18px 16px;
+            font-size: 0.82em;
+            line-height: 1.9;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .strand { display: block; margin-bottom: 10px; }
+
+        /* ── Graveyard ── */
+        .graveyard {
+            margin-top: 28px;
+            max-width: 640px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            justify-content: center;
+            font-size: 0.82em;
+        }
+
+        .burned {
+            color: #444;
+            text-decoration: line-through;
+            text-decoration-color: rgba(255, 107, 107, 0.5);
+        }
+
+        .surviving {
+            color: var(--gold);
+        }
+
+        /* ── Pointed-at list ── */
+        .pointed {
+            margin-top: 24px;
+            max-width: 560px;
+            text-align: left;
+            font-size: 0.95em;
+            line-height: 2.1;
+        }
+
+        .pointed .what { color: var(--teal); }
+        .pointed .how { color: #555; font-size: 0.85em; }
+
+        /* ── Nav / hints ── */
+        #nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .nav-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: none; cursor: pointer;
+            transition: all 0.4s ease;
+        }
+        .nav-dot.active { transform: scale(1.4); }
+
+        .scroll-hint {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            color: #555;
+            font-size: 0.8em;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        .link-tree {
+            display: inline-block;
+            margin: 12px 8px;
+            padding: 12px 28px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        .link-tree:hover {
+            color: var(--teal);
+            border-color: var(--teal);
+        }
+
+        @media (max-width: 640px) {
+            .big { font-size: 2em; }
+            .medium { font-size: 1.3em; }
+            .compiler-table { font-size: 0.75em; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="star-canvas" aria-hidden="true"></canvas>
+<div id="nav-dots"></div>
+<div class="scroll-hint">the reality ring below</div>
+
+<!-- ═══════════════ THE RECEIPTS ═══════════════ -->
+
+<!-- 0: TITLE -->
+<div class="slide">
+    <div class="big" style="color: var(--teal);">THE RECEIPTS</div>
+    <p class="small" style="margin-top: 20px;">
+        The slideshow makes a claim: everything decomposes into three rings.<br>
+        A claim is <span class="n-intent">intent</span>. Gold.<br>
+        This page is <span class="n-reality">teal</span> — what IS.
+    </p>
+    <p class="whisper">every number below is from the git log</p>
+</div>
+
+<!-- 1: THE TIMELINE -->
+<div class="slide">
+    <div class="medium" style="color: var(--corp);">"Coming soon."</div>
+    <p class="small">
+        That's what this site said in March.<br>
+        You should never trust a "coming soon."<br>
+        So don't. Count instead.
+    </p>
+
+    <div class="stat-grid">
+        <div class="stat"><div class="num">123</div><div class="lbl">days<br>Apr 7 → Aug 8</div></div>
+        <div class="stat"><div class="num">83</div><div class="lbl">commits, every one<br>a mole seed</div></div>
+        <div class="stat"><div class="num">197</div><div class="lbl">Swift files<br>strict concurrency</div></div>
+        <div class="stat"><div class="num">65,869</div><div class="lbl">lines of Swift</div></div>
+        <div class="stat"><div class="num">11</div><div class="lbl">constellation doors</div></div>
+        <div class="stat"><div class="num">9</div><div class="lbl">targets: Mac, iPhone, iPad,<br>Watch, TV, widget, server…</div></div>
+        <div class="stat"><div class="num">17</div><div class="lbl">live data sources,<br>ring-classified</div></div>
+        <div class="stat"><div class="num">1</div><div class="lbl">dependency<br>(on-device inference)</div></div>
+        <div class="stat"><div class="num">0</div><div class="lbl">web frameworks</div></div>
+        <div class="stat"><div class="num">0</div><div class="lbl">trackers. still.</div></div>
+    </div>
+
+    <p class="whisper">a Metal-rendered constellation, a graph engine, a type checker,<br>a persistence gate, and a zero-dependency HTTP server. four months.</p>
+</div>
+
+<!-- 2: THE COMPILER -->
+<div class="slide">
+    <div class="medium" style="color: var(--gold);">ZEUS IS A COMPILER</div>
+    <p class="small">
+        Not a metaphor. The pipeline maps stage for stage.
+    </p>
+
+    <table class="compiler-table">
+        <tr><th>a compiler has</th><th>zeus has</th></tr>
+        <tr><td>lexer</td><td>RingClassifier — every keystroke, character-level</td></tr>
+        <tr><td>parser</td><td>TapestryParser — brackets → node graph, formal PEG grammar</td></tr>
+        <tr><td>type checker</td><td>ConvergenceChecker — Intent without Reality is a type error</td></tr>
+        <tr><td>IR</td><td>TapestryStore — one graph, many front-ends</td></tr>
+        <tr><td>code gen</td><td>ConstellationDoor → Metal shaders. the GPU is the target arch</td></tr>
+        <tr><td>linker</td><td>Heimdall — cross-session merge, the resurrection loop</td></tr>
+        <tr><td>optimizer</td><td>Decay + Molt — dead-thought elimination</td></tr>
+    </table>
+
+    <p class="small" style="margin-top: 24px;">
+        Gap accumulation is a memory leak.<br>
+        Unreferenced pins are unused symbols.<br>
+        The temper is the compilation result.
+    </p>
+
+    <p class="whisper">
+        from the source, ConvergenceChecker.swift:<br>
+        <span style="color: var(--teal);">"This is not metaphor. This is structural equivalence."</span>
+    </p>
+</div>
+
+<!-- 3: SELF-HOSTING -->
+<div class="slide">
+    <div class="medium" style="color: var(--teal);">THE SELF-HOSTING PROOF</div>
+    <p class="small">
+        A compiler proves itself by compiling itself.<br>
+        Zeus is <em style="color:#999;">written in the notation it compiles</em> —
+        every commit message in its repo is ring-notation. These are real. <span style="color:#555;">git log.</span>
+    </p>
+
+    <div class="commit-card">
+        <div class="sha-bar"><span class="sha">be8833e</span><span class="subject">docs(ethos): restore the Six Invariants — the burn took canon with the scaffolding</span></div>
+        <div class="strands" id="commit-1"></div>
+    </div>
+
+    <div class="commit-card">
+        <div class="sha-bar"><span class="sha">dd73cc2</span><span class="subject">fix(map): the audit was counting build output as source</span></div>
+        <div class="strands" id="commit-2"></div>
+    </div>
+
+    <p class="whisper">
+        strand extraction — the same read the molt assembler does on the git log.<br>
+        the repo's history is a constellation. the git log is the training data.
+    </p>
+</div>
+
+<!-- 4: JERICHO -->
+<div class="slide">
+    <div class="medium" style="color: var(--red);">JERICHO</div>
+    <p class="small">
+        The discipline: Python proves a feature. Swift ships it.<br>
+        Then the Python <em style="color: var(--red);">burns</em>.
+    </p>
+
+    <div class="graveyard">
+        <span class="burned">zeus-music.py</span>
+        <span class="burned">zeus-dj.py</span>
+        <span class="burned">zeus-spotify.py</span>
+        <span class="burned">grip-scanner.py</span>
+        <span class="burned">mdr-bridge.py</span>
+        <span class="burned">gov-bridge.py</span>
+        <span class="burned">crash-watcher.py</span>
+        <span class="burned">market-bridge.py</span>
+        <span class="burned">session-explorer.py</span>
+        <span class="burned">athena-probe.py</span>
+        <span class="burned">audit-refs.py</span>
+        <span class="burned">mnemosyne.py</span>
+        <span class="burned">genius-rings.py</span>
+        <span class="burned">zscan.py</span>
+        <span class="burned">omega-sync.py</span>
+        <span class="burned">zeus-serve.py</span>
+        <span class="burned">harry.py</span>
+        <span class="burned">flip-server.py</span>
+        <span class="burned">zeus-gate.py</span>
+        <span class="burned">fomc-fetch.py</span>
+        <span class="burned">fomc-tone.py</span>
+        <span class="burned">fomc-bridge.py</span>
+        <span class="burned">process-corpus.py</span>
+        <span class="surviving">mdr-session-classifier.py</span>
+        <span class="surviving">sonic-rings.py</span>
+    </div>
+
+    <p class="small" style="margin-top: 28px;">
+        23 burned. <span class="n-intent">2 still on the list.</span><br>
+        Every .py file is a debt.
+    </p>
+    <p class="whisper">no snake in the compiler. the list remembers.</p>
+</div>
+
+<!-- 5: POINT IT AT ANYTHING -->
+<div class="slide">
+    <div class="medium" style="color: var(--blue);">"POINT IT AT ANYTHING"</div>
+    <p class="small">
+        The README ends with a claim: point it at anything and it shows you
+        Intent, Reality, and Gap. OK. We pointed it.
+    </p>
+
+    <div class="pointed">
+        <div><span class="what">at a truck</span> — <span class="how">a Ford Maverick's OBD port. an 81-minute drive confirmed the transmission-temp DID. live gauges in the instrument.</span></div>
+        <div><span class="what">at the government</span> — <span class="how">Treasury auctions, Fed RSS, the Federal Register, Senate votes, OFAC, FOMC minutes — tone-read and ring-classified.</span></div>
+        <div><span class="what">at the planet</span> — <span class="how">USGS earthquakes, two weather services, watching the ground and the sky.</span></div>
+        <div><span class="what">at the crowd</span> — <span class="how">markets and Wikipedia attention spikes. what the world wants vs what it's reading.</span></div>
+        <div><span class="what">at itself</span> — <span class="how">its own crash reports become memories. "a crash report is a corpse, a crash-molt is a memory."</span></div>
+    </div>
+
+    <p class="whisper">
+        17 sources, polling independently, all through one Swift server<br>
+        with zero dependencies, serving any browser on the LAN.
+    </p>
+</div>
+
+<!-- 6: THE SPREAD -->
+<div class="slide">
+    <div class="medium" style="color: var(--pink);">ONE GRAPH, EVERY SURFACE</div>
+    <p class="small">
+        The constellation doesn't live in one app. It lives in the graph,<br>
+        and every surface is a door:
+    </p>
+
+    <div class="pointed" style="text-align: center;">
+        <div><span class="what">the Mac</span> <span class="how">— Metal GPU, eleven doors, the full instrument</span></div>
+        <div><span class="what">the iPhone</span> <span class="how">— capture, feed, breathe</span></div>
+        <div><span class="what">the Watch</span> <span class="how">— a two-second glance: temper, rings, pins</span></div>
+        <div><span class="what">the TV</span> <span class="how">— the big board on the wall</span></div>
+        <div><span class="what">a 2013 iPad</span> <span class="how">— old hardware isn't dead hardware</span></div>
+        <div><span class="what">this browser</span> <span class="how">— the same kernel, one HTML file, view source</span></div>
+    </div>
+
+    <p class="whisper">no cloud between them. the filesystem is the postman.</p>
+</div>
+
+<!-- 7: THE LICENSE -->
+<div class="slide">
+    <div class="medium" style="color: var(--corp);">"What about the legal stuff?"</div>
+    <p class="small">
+        You've seen 73-page terms of service.<br>
+        You've seen 14,000-word privacy policies.<br><br>
+        Here is the Zeus license. In full. All of it:
+    </p>
+
+    <div style="margin-top: 24px; padding: 24px 36px; border: 1px solid rgba(255,215,0,0.15); border-radius: 10px; background: rgba(255,215,0,0.02);">
+        <p style="color: var(--gold); font-size: 1.2em; line-height: 1.9;">
+            "Be a good person, help people. EZPZ."
+        </p>
+    </div>
+
+    <p class="whisper">five words and an EZPZ. informed consent takes eleven seconds.</p>
+</div>
+
+<!-- 8: OUT -->
+<div class="slide">
+    <div class="big" style="color: var(--gold); font-size: 2.2em;">
+        THE CLAIM WAS INTENT.<br>
+        <span style="color: var(--teal);">THIS WAS REALITY.</span>
+    </div>
+    <p class="small" style="margin-top: 20px;">
+        <span class="n-gap">The gap is yours to close: type one bracket.</span>
+    </p>
+
+    <div style="margin-top: 40px;">
+        <a href="ariadne.html" class="link-tree" style="color: var(--green);" onmouseover="this.style.borderColor='#a0dca0';" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';">
+            type a bracket — ariadne, live
+        </a>
+        <a href="slideshow.html" class="link-tree" style="color: var(--gold);" onmouseover="this.style.borderColor='#ffd700';" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';">
+            the claim
+        </a>
+        <a href="index.html" class="link-tree">
+            the forest
+        </a>
+    </div>
+</div>
+
+<script>
+// ═══════════════ REAL COMMITS — verbatim from the Zeus git log ═══════════════
+// Strand extraction: each strand keeps its bracket glyphs and gets its ring
+// color. Pins (vvNamevv) light up red inside any strand, same as the classifier.
+
+const COMMITS = {
+    'commit-1': [
+        { ring: 'n-intent',  text: '{{ recover the soul the superpowers burn swept out }}' },
+        { ring: 'n-reality', text: '{ docs/ETHOS.md: the Six Invariants table, the spirit/consequence line, and "a spine, not a cage" — recovered verbatim from the burned 2026-03-27 2JZ design spec, plus an as-built section mapping each layer to the shipped code (EthosGuard, EthosBlock, constellation exposure); CLAUDE.md links it from What Zeus Is }' },
+        { ring: 'n-gap',     text: '[ swept the other 15 burned superpowers docs + 3 ZLM specs — all implementation-plan-shaped, git history is their archive; nothing else canon-bearing found ]' },
+        { ring: 'n-aether',  text: ': reference-scanning sees what code reads, not what the project believes — the map\'s annotations are human judgment for a reason :' },
+        { ring: 'n-pin',     text: 'vvWOZvv' },
+    ],
+    'commit-2': [
+        { ring: 'n-intent',  text: '{{ intent — a gate that cries drift on every commit stops being read. vvBLINDTOWERvv works only if green means green }}' },
+        { ring: 'n-reality', text: '{ reality — layout-audit.sh walked the tree with find, excluding only .git/, so generated Swift under build/ (865MB of Jul 16 artifacts) counted as source. That is drift LAYOUT.md could never satisfy — the map cannot list files that are build output. Swapped both call sites to git ls-files, which is the source inventory by definition. Verified it still catches real drift — a probe .swift is reported, and the count returns clean on delete }' },
+        { ring: 'n-aether',  text: ': aether — the map gate has been reporting a phantom since the first iOS build landed in build/. The instrument was fine; it was measuring the wrong tree :' },
+    ],
+};
+
+const PIN_RE = /vv([A-Za-z][A-Za-z0-9_-]*)vv/g;
+
+for (const [id, strands] of Object.entries(COMMITS)) {
+    const el = document.getElementById(id);
+    for (const s of strands) {
+        const span = document.createElement('span');
+        span.className = 'strand ' + s.ring;
+        // pin overlay — pins glow red inside any strand
+        let last = 0; PIN_RE.lastIndex = 0; let m;
+        while ((m = PIN_RE.exec(s.text)) !== null) {
+            span.appendChild(document.createTextNode(s.text.slice(last, m.index)));
+            const pin = document.createElement('span');
+            pin.className = 'n-pin';
+            pin.style.textDecoration = 'underline';
+            pin.textContent = m[0];
+            span.appendChild(pin);
+            last = m.index + m[0].length;
+        }
+        span.appendChild(document.createTextNode(s.text.slice(last)));
+        el.appendChild(span);
+    }
+}
+
+// ═══════════════ stars + slides (same sky as every page) ═══════════════
+const starCanvas = document.getElementById('star-canvas');
+const starCtx = starCanvas.getContext('2d');
+
+function resize() {
+    starCanvas.width = window.innerWidth;
+    starCanvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const stars = [];
+for (let i = 0; i < 90; i++) {
+    stars.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight * 10,
+        r: Math.random() * 1 + 0.3,
+        a: Math.random() * 0.1 + 0.03,
+        speed: Math.random() * 0.001 + 0.0003
+    });
+}
+
+function drawStars(t) {
+    starCtx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+    const scrollY = window.scrollY;
+    for (const s of stars) {
+        const sy = s.y - scrollY * 0.3;
+        if (sy < -10 || sy > starCanvas.height + 10) continue;
+        const pulse = Math.sin(t * s.speed + s.x) * 0.5 + 0.5;
+        const alpha = s.a * (0.5 + pulse * 0.5);
+        starCtx.beginPath();
+        starCtx.arc(s.x, sy, s.r, 0, Math.PI * 2);
+        starCtx.fillStyle = `rgba(180, 190, 220, ${alpha})`;
+        starCtx.fill();
+    }
+}
+
+const slides = document.querySelectorAll('.slide');
+const navDots = document.getElementById('nav-dots');
+slides.forEach(slide => {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot';
+    dot.setAttribute('aria-label', 'Go to slide');
+    dot.addEventListener('click', () => slide.scrollIntoView({ behavior: 'smooth' }));
+    navDots.appendChild(dot);
+});
+const navDotEls = navDots.querySelectorAll('.nav-dot');
+
+const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.2 });
+slides.forEach(s => observer.observe(s));
+
+function updateActive() {
+    const vh = window.innerHeight;
+    let ai = 0, min = Infinity;
+    slides.forEach((s, i) => {
+        const d = Math.abs(s.getBoundingClientRect().top + s.getBoundingClientRect().height / 2 - vh / 2);
+        if (d < min) { min = d; ai = i; }
+    });
+    navDotEls.forEach((d, i) => {
+        d.classList.toggle('active', i === ai);
+        d.style.background = i === ai ? '#4ecdc4' : '';
+        d.style.boxShadow = i === ai ? '0 0 8px rgba(78,205,196,0.6)' : '';
+    });
+}
+
+window.addEventListener('scroll', () => {
+    updateActive();
+    const hint = document.querySelector('.scroll-hint');
+    if (window.scrollY > 50 && hint) { hint.style.opacity = '0'; hint.style.transition = 'opacity 0.5s'; }
+});
+
+function animate(t) { drawStars(t); requestAnimationFrame(animate); }
+updateActive();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>
