@@ -6,7 +6,8 @@
 //   1. every internal link on every page resolves to a real file
 //   2. every page loads over http with zero console errors
 //   3. the Ariadne kernel: classification, zeusc scores, the molt seed,
-//      and the seed round-trip (paste a seed back in, the rings return)
+//      the seed round-trip, the one-surface editor (transparent-ink
+//      textarea over the mirror), zim⁰ suggestions, and the sigils
 //   4. the Nova door: wake-fold, convergence starburst, settle, paste→fold,
 //      the paste-surge tornado, its decay back through fold, and the
 //      two-tab fellowship tornado
@@ -131,6 +132,61 @@ async function main() {
         const rtPills = await page.locator('#ringPills .ring-pill').allTextContents();
         check(rtPills.length === 6, 'the seed survives the paste — all six rings return', rtPills.join(', '));
         check(pageErrors.length === 0, 'no page errors through the kernel suite', pageErrors.join(' | '));
+
+        // ── 3b. One surface, zim⁰, sigils ──
+        console.log('editor surface:');
+        pageErrors.length = 0;
+        await page.goto(`${base}/ariadne.html`);
+        await page.waitForTimeout(700);
+
+        const taColor = await page.$eval('#input', el => getComputedStyle(el).color);
+        check(taColor === 'rgba(0, 0, 0, 0)', 'textarea ink is transparent — the mirror is the text', taColor);
+        const drift = await page.evaluate(() => {
+            const a = document.getElementById('input').getBoundingClientRect();
+            const b = document.getElementById('mirror').getBoundingClientRect();
+            return Math.abs(a.top - b.top) + Math.abs(a.left - b.left)
+                 + Math.abs(a.width - b.width) + Math.abs(a.height - b.height);
+        });
+        check(drift < 1, 'mirror and textarea share exact geometry', `${drift}px drift`);
+
+        console.log('zim⁰:');
+        const barIdle = await page.$eval('#suggestBar', el => getComputedStyle(el).display);
+        check(barIdle === 'none', 'suggestion bar stays hidden with nothing to say', barIdle);
+        await page.fill('#input', 'I want to ship this tonight');
+        await page.waitForTimeout(400);
+        const patternChip = await page.locator('.suggest-chip').first().textContent().catch(() => '(no chip)');
+        check(patternChip.includes('*'), 'pattern chip offers the intent wrap', patternChip);
+        await page.focus('#input');
+        await page.keyboard.press('Tab');
+        await page.waitForTimeout(300);
+        const wrapped = await page.$eval('#input', el => el.value);
+        check(wrapped === '*I want to ship this tonight*', 'Tab wraps the sentence', wrapped);
+
+        await page.fill('#input', '{half a thought');
+        await page.waitForTimeout(400);
+        const closeChip = await page.locator('.suggest-chip').first().textContent().catch(() => '(no chip)');
+        check(closeChip.includes('close'), 'unclosed bracket offers its other half', closeChip);
+        await page.focus('#input');
+        await page.keyboard.press('Tab');
+        await page.waitForTimeout(300);
+        const closed = await page.$eval('#input', el => el.value);
+        check(closed === '{half a thought}', 'Tab closes the thread', closed);
+
+        console.log('sigils:');
+        await page.fill('#input', 'running the 3 like Dale meant it');
+        await page.waitForTimeout(400);
+        const whisper = await page.locator('#sigilWhisper').textContent();
+        check(whisper.includes('Dale Earnhardt'), 'the 3 gets its driver named', whisper);
+
+        await page.fill('#input', 'vvARIADNEvv *the seed knows its year*');
+        await page.waitForTimeout(400);
+        await page.click('#moltBtn');
+        const sigilSeed = await page.locator('#moltText').textContent();
+        check(/(wood|fire|earth|metal|water) (rat|ox|tiger|rabbit|dragon|snake|horse|goat|monkey|rooster|dog|pig) year/.test(sigilSeed),
+            'molt seed knows its zodiac year', sigilSeed.split('\n')[0]);
+        check(sigilSeed.includes('beacon') && sigilSeed.includes('.-'), 'pins ride the morse beacon');
+        await page.click('#moltClose');
+        check(pageErrors.length === 0, 'no page errors through editor/zim⁰/sigils', pageErrors.join(' | '));
 
         // ── 4. Nova door ──
         console.log('nova door:');

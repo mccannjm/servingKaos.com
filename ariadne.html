@@ -107,7 +107,10 @@ body {
 }
 .site-links a:hover { color: var(--teal); }
 
-/* ── Editor pane ── */
+/* ── Editor pane — ONE surface. The colored render sits underneath a
+      textarea whose text is transparent but whose caret is not. You are
+      typing directly into the mirror. Both layers share exact metrics
+      (font, padding, wrap, hidden scrollbars) so they never drift. ── */
 .editor-panel {
     display: flex;
     flex-direction: column;
@@ -115,35 +118,87 @@ body {
     overflow: hidden;
 }
 
-.mirror {
+.editor-stack {
+    position: relative;
     flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-    line-height: 1.7;
-    font-size: 14px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
+    overflow: hidden;
 }
 
-.mirror .m-pin { text-decoration: underline; }
-
-.input-area textarea {
-    width: 100%;
-    min-height: 110px;
-    max-height: 40vh;
-    background: var(--surface);
-    color: var(--text);
-    border: none;
-    border-top: 1px solid var(--border);
-    padding: 16px 20px;
+.mirror, .editor-stack textarea {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 20px;
     font-family: inherit;
     font-size: 14px;
     line-height: 1.7;
-    resize: vertical;
-    outline: none;
+    letter-spacing: normal;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: normal;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+.mirror::-webkit-scrollbar, .editor-stack textarea::-webkit-scrollbar { display: none; }
+
+.mirror {
+    pointer-events: none;
+    color: var(--plain);
 }
 
-.input-area textarea::placeholder { color: var(--dim); }
+.mirror .m-pin { text-decoration: underline; }
+.mirror .m-prompt { color: var(--dim); font-style: italic; }
+
+.editor-stack textarea {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    color: transparent;
+    caret-color: #e8e8f0;
+}
+.editor-stack textarea::selection { background: rgba(78, 205, 196, 0.22); }
+
+/* ── zim⁰ suggestion bar ── */
+.suggest-bar[hidden] { display: none; }
+.suggest-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--dim);
+    flex-wrap: wrap;
+    min-height: 34px;
+}
+
+.suggest-tier {
+    letter-spacing: 0.1em;
+    color: #4a4a60;
+    cursor: help;
+}
+
+.suggest-chip {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    max-width: 46ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.suggest-chip:hover { box-shadow: 0 0 12px rgba(255, 255, 255, 0.06); }
+
+.suggest-hint { margin-left: auto; font-style: italic; font-size: 10px; color: #3a3a50; }
 
 /* ── Constellation pane ── */
 .constellation-panel { position: relative; overflow: hidden; }
@@ -218,6 +273,8 @@ body {
 
 #novaState { color: var(--gold); letter-spacing: 0.08em; }
 #novaState.burst { text-shadow: 0 0 14px rgba(255, 215, 0, 0.9); }
+
+.sigil { color: rgba(255, 107, 107, 0.55); font-style: italic; }
 
 .nova-legend {
     position: absolute;
@@ -348,14 +405,19 @@ body {
     </div>
 
     <div class="editor-panel">
-        <div class="mirror" id="mirror" aria-hidden="true"></div>
-        <div class="input-area">
-            <label for="input" class="sr-only" style="position:absolute;left:-9999px;">Write bracket-notation text</label>
-            <textarea id="input" spellcheck="false" aria-label="Write here. Brackets classify your text into rings as you type.">*resurrect the instrument* {it was buried in the git log for five months}
+        <div class="editor-stack">
+            <div class="mirror" id="mirror" aria-hidden="true"></div>
+            <label for="input" class="sr-only">Write bracket-notation text</label>
+            <textarea id="input" spellcheck="false" autocomplete="off" aria-label="Write here. Brackets classify your text into rings, and the colors appear in place as you type.">*resurrect the instrument* {it was buried in the git log for five months}
 {{what else is down there?}} [does the seed survive the paste?]
 ^watch me watching the rings^ %^&March 20 → August 8%^&
 :the thread was never cut:
 vvARIADNEvv</textarea>
+        </div>
+        <div class="suggest-bar" id="suggestBar" hidden>
+            <span class="suggest-tier" title="zim tier zero — structural reads and scaffold patterns. The real ZIM trains on your corpus; this is the ember of it.">zim&#8304;</span>
+            <span id="suggestChips" style="display:flex; gap:8px; flex-wrap:wrap;"></span>
+            <span class="suggest-hint">tab accepts &middot; esc dismisses</span>
         </div>
     </div>
 
@@ -373,6 +435,7 @@ vvARIADNEvv</textarea>
         <div class="ring-pills" id="ringPills"></div>
         <div id="openThreadsLabel" style="font-style:italic" aria-live="polite"></div>
         <span id="novaState" hidden></span>
+        <span id="sigilWhisper" class="sigil" hidden></span>
         <span id="novaAnnouncer" class="sr-only" aria-live="polite"></span>
         <button class="vitals" id="vitalsBtn" aria-label="Show convergence diagnostics" aria-expanded="false">
             <span>temper: <span class="temper-word" id="temperWord">rest</span></span>
@@ -562,7 +625,7 @@ function parseWalk(text) {
     const threads = stack.map(e => {
         const s = Math.min(e.cs, chars.length), end = Math.min(s + 40, chars.length);
         const preview = s < end ? chars.slice(s, end).join('').replace(GLYPH_STRIP, ' ').replace(/\s+/g, ' ').trim() : '';
-        return { ring: e.def.ring, name: e.def.name, preview };
+        return { ring: e.def.ring, name: e.def.name, close: e.def.close, preview };
     });
     return { nodes: [...seen.values()], threads };
 }
@@ -632,13 +695,17 @@ function moltSeed(nodes, text, report) {
     const heavy = nodes.filter(n => n.ring !== 'pin').sort((a, b) => b.weight - a.weight).slice(0, 7);
     const threads = openThreads(text);
     const d = new Date().toISOString().slice(0, 10);
-    let out = `: molt ${d} — ariadne (browser) — temper ${report.temper} — convergence ${Math.round(report.score * 100)}% :\n`;
+    const zodiac = chineseZodiac(new Date().getFullYear()).toLowerCase();
+    let out = `: molt ${d} — ariadne (browser) — temper ${report.temper} — convergence ${Math.round(report.score * 100)}% — ${zodiac} year :\n`;
     for (const p of pins) out += `vv${p.content}vv\n`;
     for (const n of heavy) {
         const b = BRACKETS.find(x => x.type === n.type);
         if (b) out += `${b.open}${n.content}${b.close}\n`;
     }
     for (const t of threads) out += `[ still open — ${t.preview || t.name} ]\n`;
+    if (pins.length) out += `: beacon — ${pins.map(p => `${p.content} = ${toMorse(p.content)}`).join(' / ')} :\n`;
+    const car = legendIn(text);
+    if (car !== null) out += `: car ${car} — ${NASCAR_LEGENDS[car]} :\n`;
     out += `: paste this seed into any Ariadne to wake it :`;
     return out;
 }
@@ -1208,6 +1275,13 @@ function renderLoop() {
 function renderMirror(segments) {
     const mirror = document.getElementById('mirror');
     mirror.innerHTML = '';
+    if (!segments.length) {
+        const p = document.createElement('span');
+        p.className = 'm-prompt';
+        p.textContent = 'write. place a bracket. the rings will find you.';
+        mirror.appendChild(p);
+        return;
+    }
     for (const seg of segments) {
         const span = document.createElement('span');
         span.textContent = seg.text;
@@ -1218,6 +1292,19 @@ function renderMirror(segments) {
         } else { span.style.color = 'var(--plain)'; }
         mirror.appendChild(span);
     }
+    // A trailing zero-width space keeps a final newline from collapsing,
+    // so the mirror's height always matches the textarea's.
+    const tail = document.createElement('span');
+    tail.textContent = '​';
+    mirror.appendChild(tail);
+    syncMirrorScroll();
+}
+
+function syncMirrorScroll() {
+    const input = document.getElementById('input');
+    const mirror = document.getElementById('mirror');
+    mirror.scrollTop = input.scrollTop;
+    mirror.scrollLeft = input.scrollLeft;
 }
 
 function updateStatus(segments, text) {
@@ -1285,6 +1372,209 @@ function updateVitals(report) {
     canvas.setAttribute('aria-label', desc);
 }
 
+// ═══════════════ zim⁰ — the scaffold suggester ═══════════════
+//
+// Not the real ZIM. The real one trains on your corpus, on-device
+// (PatternCollector → TrainingCorpus → ZIMTrainer). This is tier zero:
+// structural reads that need no model — the innermost unclosed bracket,
+// the type checker's top diagnostic turned into a move — plus a handful
+// of scaffold sentence patterns. Suggestions never auto-apply. Tab or
+// click accepts the first chip; Esc dismisses until the text changes.
+
+const SUGGEST = { current: [], dismissedSig: '' };
+
+const PATTERN_TIERS = [
+    { type: 'emphasis', re: /\b(i want|i wish|i need|i hope|i'm going to|we need|let's|i will)\b/i, verb: 'name the want' },
+    { type: 'square',   re: /\b(i don't know|what if|maybe|i wonder|not sure|could be|somehow|no idea)\b/i, verb: 'hold it open' },
+    { type: 'curly',    re: /\b(actually|in fact|right now|the truth is|it turns out|we have|there is|i did)\b/i, verb: 'ground it' },
+    { type: 'caret',    re: /\b(i notice|i keep|i'm watching myself|why do i|here i go again)\b/i, verb: 'step outside it' },
+];
+
+function bracketByType(t) { return BRACKETS.find(b => b.type === t); }
+
+function currentSentence(text, caret) {
+    const before = text.slice(0, caret);
+    let start = Math.max(before.lastIndexOf('\n'), before.lastIndexOf('. '), before.lastIndexOf('? '));
+    start = start < 0 ? 0 : start + (before[start] === '\n' ? 1 : 2);
+    const rel = text.slice(caret).search(/[.?\n]/);
+    const end = rel < 0 ? text.length : caret + rel;
+    return { start, end, text: text.slice(start, end) };
+}
+
+function replaceRange(start, end, replacement) {
+    const input = document.getElementById('input');
+    input.focus();
+    input.setSelectionRange(start, end);
+    let ok = false;
+    try { ok = document.execCommand('insertText', false, replacement); } catch { ok = false; }
+    if (!ok) {
+        input.setRangeText(replacement, start, end, 'end');
+        onInput();
+    }
+}
+
+function insertAtCaret(text) {
+    const input = document.getElementById('input');
+    const c = input.selectionStart ?? input.value.length;
+    replaceRange(c, input.selectionEnd ?? c, text);
+}
+
+function insertPairAtCaret(b) {
+    const input = document.getElementById('input');
+    const c = input.selectionStart ?? input.value.length;
+    replaceRange(c, input.selectionEnd ?? c, b.open + b.close);
+    const pos = c + b.open.length;
+    input.setSelectionRange(pos, pos);
+}
+
+function wrapSentence(start, end, b) {
+    const input = document.getElementById('input');
+    const raw = input.value.slice(start, end);
+    const lead = raw.length - raw.trimStart().length;
+    const trail = raw.length - raw.trimEnd().length;
+    const s = start + lead, e = end - trail;
+    if (e <= s) return;
+    replaceRange(s, e, b.open + input.value.slice(s, e) + b.close);
+}
+
+function computeSuggestions(text, threads) {
+    const input = document.getElementById('input');
+    const caret = input.selectionStart ?? text.length;
+    const out = [];
+
+    // 1. Structural: the innermost open bracket wants its other half.
+    if (threads.length) {
+        const t = threads[threads.length - 1];
+        out.push({
+            sig: `close|${t.close}|${threads.length}`,
+            ring: t.ring,
+            label: `close ${t.close}`,
+            title: `"${t.preview || t.name}" is still open`,
+            apply: () => insertAtCaret(t.close),
+        });
+    }
+
+    // 2. The type checker speaks: the top zeusc diagnostic becomes a move.
+    const diag = lastReport.diagnostics.find(d => d.severity !== 'note' && d.ring);
+    if (diag) {
+        const MOVE = {
+            intent:    { type: 'curly',    verb: 'ground one' },
+            gap:       { type: 'curly',    verb: 'answer one' },
+            reality:   { type: 'emphasis', verb: 'name a want' },
+            crossRing: { type: 'curly',    verb: 'give it substance' },
+        }[diag.ring];
+        if (MOVE) {
+            const b = bracketByType(MOVE.type);
+            out.push({
+                sig: `balance|${diag.ring}|${MOVE.type}`,
+                ring: b.ring,
+                label: `${MOVE.verb}: ${b.open} ${b.close}`,
+                title: diag.message,
+                apply: () => insertPairAtCaret(b),
+            });
+        }
+    }
+
+    // 3. Scaffold patterns: an unbracketed sentence may already know its
+    //    ring. First match wins, same rule as the classifier.
+    const s = currentSentence(text, caret);
+    const st = s.text.trim();
+    if (st.length > 3 && !/[{}\[\]()*^|:!#]/.test(s.text)) {
+        for (const tier of PATTERN_TIERS) {
+            if (tier.re.test(s.text)) {
+                const b = bracketByType(tier.type);
+                const shown = st.length > 26 ? st.slice(0, 24) + '…' : st;
+                out.push({
+                    sig: `wrap|${tier.type}|${st.slice(0, 20)}`,
+                    ring: b.ring,
+                    label: `${tier.verb}: ${b.open}${shown}${b.close}`,
+                    title: `wrap the sentence in ${b.open} ${b.close}`,
+                    apply: () => wrapSentence(s.start, s.end, b),
+                });
+                break;
+            }
+        }
+    }
+
+    return out.slice(0, 2);
+}
+
+function renderSuggestions(list) {
+    SUGGEST.current = list;
+    const bar = document.getElementById('suggestBar');
+    const chips = document.getElementById('suggestChips');
+    const sig = list.map(x => x.sig).join('~');
+    if (!list.length || sig === SUGGEST.dismissedSig) { bar.hidden = true; return; }
+    chips.innerHTML = '';
+    list.forEach((sug, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'suggest-chip';
+        const [r, g, b] = RINGS[sug.ring]?.color || [136, 136, 136];
+        btn.style.color = `rgb(${r},${g},${b})`;
+        btn.style.borderColor = `rgba(${r},${g},${b},0.35)`;
+        btn.textContent = sug.label;
+        btn.title = sug.title + (i === 0 ? ' — Tab accepts' : '');
+        btn.setAttribute('aria-label', `Suggestion: ${sug.label}. ${sug.title}`);
+        btn.addEventListener('mousedown', e => e.preventDefault());
+        btn.addEventListener('click', () => sug.apply());
+        chips.appendChild(btn);
+    });
+    bar.hidden = false;
+}
+
+// ═══════════════ SIGILS — the funsies layer ═══════════════
+//
+// Encodings that ride along without touching the kernel: pins carry a
+// morse beacon into the molt seed, the seed knows its zodiac year, and
+// legendary car numbers get their drivers named. Small on purpose.
+
+const MORSE = {
+    A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.', H: '....',
+    I: '..', J: '.---', K: '-.-', L: '.-..', M: '--', N: '-.', O: '---', P: '.--.',
+    Q: '--.-', R: '.-.', S: '...', T: '-', U: '..-', V: '...-', W: '.--', X: '-..-',
+    Y: '-.--', Z: '--..', 0: '-----', 1: '.----', 2: '..---', 3: '...--', 4: '....-',
+    5: '.....', 6: '-....', 7: '--...', 8: '---..', 9: '----.',
+};
+function toMorse(s) {
+    return [...s.toUpperCase()].map(c => MORSE[c] || '').filter(Boolean).join(' ');
+}
+
+// Solar-year approximation — by the lunar calendar, Jan/early-Feb dates
+// belong to the previous animal. The molt is a vibe, not an almanac.
+const ZODIAC_ANIMALS = ['Rat', 'Ox', 'Tiger', 'Rabbit', 'Dragon', 'Snake', 'Horse', 'Goat', 'Monkey', 'Rooster', 'Dog', 'Pig'];
+const ZODIAC_ELEMENTS = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+function chineseZodiac(year) {
+    const animal = ZODIAC_ANIMALS[(year - 4) % 12];
+    const element = ZODIAC_ELEMENTS[Math.floor(((year - 4) % 10) / 2)];
+    return `${element} ${animal}`;
+}
+
+// The numbers that don't need a series or a season attached.
+const NASCAR_LEGENDS = {
+    2: 'Rusty Wallace', 3: 'Dale Earnhardt', 4: 'Kevin Harvick', 5: 'Terry Labonte',
+    6: 'Mark Martin', 7: 'Alan Kulwicki', 9: 'Bill Elliott', 11: 'Cale Yarborough',
+    14: 'Tony Stewart', 18: 'Kyle Busch', 21: 'David Pearson', 24: 'Jeff Gordon',
+    28: 'Davey Allison', 43: 'Richard Petty', 48: 'Jimmie Johnson', 88: 'Dale Earnhardt Jr.',
+};
+
+function legendIn(text) {
+    const re = /(?:^|[^\d.])(\d{1,2})(?![\d.])/g;
+    let last = null, m;
+    while ((m = re.exec(text)) !== null) {
+        const n = +m[1];
+        if (NASCAR_LEGENDS[n]) last = n;
+    }
+    return last;
+}
+
+function updateSigils(text) {
+    const el = document.getElementById('sigilWhisper');
+    const n = legendIn(text);
+    if (n === null) { el.hidden = true; return; }
+    el.textContent = `#${n} — ${NASCAR_LEGENDS[n]}`;
+    el.hidden = false;
+}
+
 // ═══════════════════ WIRING ═══════════════════
 
 let parseTimer = null;
@@ -1298,7 +1588,8 @@ function onInput() {
     updateStatus(segments, text);
     clearTimeout(parseTimer);
     parseTimer = setTimeout(() => {
-        currentNodes = parseNodes(text);
+        const walk = parseWalk(text);
+        currentNodes = walk.nodes;
         // Paste diff: nodes that appeared through a paste are external —
         // top-funnel material for the Nova fold.
         if (novaPasteSnapshot) {
@@ -1308,6 +1599,8 @@ function onInput() {
             novaPasteSnapshot = null;
         }
         updateVitals(checkConvergence(currentNodes));
+        renderSuggestions(computeSuggestions(text, walk.threads));
+        updateSigils(text);
         if (paused) drawFrame();
     }, 150);
 }
@@ -1318,6 +1611,22 @@ document.getElementById('input').addEventListener('input', onInput);
 document.getElementById('input').addEventListener('paste', () => {
     novaPasteTimes.push(performance.now() / 1000);
     novaPasteSnapshot = new Set(currentNodes.map(n => n.id));
+});
+
+// One surface: the textarea scrolls, the mirror follows.
+document.getElementById('input').addEventListener('scroll', syncMirrorScroll);
+
+// Tab accepts the first suggestion — only while the bar is showing, so
+// Tab keeps its focus-moving job the rest of the time. Esc dismisses.
+document.getElementById('input').addEventListener('keydown', e => {
+    const bar = document.getElementById('suggestBar');
+    if (e.key === 'Tab' && !bar.hidden && SUGGEST.current.length) {
+        e.preventDefault();
+        SUGGEST.current[0].apply();
+    } else if (e.key === 'Escape' && !bar.hidden) {
+        SUGGEST.dismissedSig = SUGGEST.current.map(x => x.sig).join('~');
+        bar.hidden = true;
+    }
 });
 
 document.querySelectorAll('.door-btn').forEach(btn => {
