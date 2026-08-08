@@ -1540,7 +1540,8 @@ function toMorse(s) {
 }
 
 // Solar-year approximation — by the lunar calendar, Jan/early-Feb dates
-// belong to the previous animal. The molt is a vibe, not an almanac.
+// belong to the previous animal (the Fire Horse year proper runs
+// Feb 17 2026 → Feb 5 2027). The molt is a vibe, not an almanac.
 const ZODIAC_ANIMALS = ['Rat', 'Ox', 'Tiger', 'Rabbit', 'Dragon', 'Snake', 'Horse', 'Goat', 'Monkey', 'Rooster', 'Dog', 'Pig'];
 const ZODIAC_ELEMENTS = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
 function chineseZodiac(year) {
@@ -1549,12 +1550,17 @@ function chineseZodiac(year) {
     return `${element} ${animal}`;
 }
 
-// The numbers that don't need a series or a season attached.
+// The numbers that don't need a series or a season attached. Contested
+// numbers resolved by historical weight: 11 is Cale's three-peat (a record
+// still unmatched), 21 is Pearson's Wood Brothers seat, 17 is DW's Daytona,
+// 20 is the Home Depot orange, 22 is Fireball — whose death gave the sport
+// fuel cells and fire suits.
 const NASCAR_LEGENDS = {
     2: 'Rusty Wallace', 3: 'Dale Earnhardt', 4: 'Kevin Harvick', 5: 'Terry Labonte',
     6: 'Mark Martin', 7: 'Alan Kulwicki', 9: 'Bill Elliott', 11: 'Cale Yarborough',
-    14: 'Tony Stewart', 18: 'Kyle Busch', 21: 'David Pearson', 24: 'Jeff Gordon',
-    28: 'Davey Allison', 43: 'Richard Petty', 48: 'Jimmie Johnson', 88: 'Dale Earnhardt Jr.',
+    14: 'Tony Stewart', 17: 'Darrell Waltrip', 18: 'Kyle Busch', 20: 'Tony Stewart',
+    21: 'David Pearson', 22: 'Fireball Roberts', 24: 'Jeff Gordon', 28: 'Davey Allison',
+    43: 'Richard Petty', 48: 'Jimmie Johnson', 88: 'Dale Earnhardt Jr.',
 };
 
 function legendIn(text) {
