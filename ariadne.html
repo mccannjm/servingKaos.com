@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ariadne — the thread, live</title>
+    <link rel="icon" href="favicon.svg">
 <meta name="description" content="The Zeus kernel running in your browser. Type one bracket. The rings will find you.">
 <meta property="og:title" content="Ariadne — the thread, live">
 <meta property="og:description" content="Same classifier. Same layout math. Same colors. No server, no account, no tracking. View source — it's all here.">
@@ -213,6 +214,11 @@ body {
     transition: width 0.4s ease, background 0.4s ease;
 }
 
+.sr-only { position: absolute; left: -9999px; }
+
+#novaState { color: var(--gold); letter-spacing: 0.08em; }
+#novaState.burst { text-shadow: 0 0 14px rgba(255, 215, 0, 0.9); }
+
 /* ── Diagnostics drawer — zeusc output ── */
 .diagnostics {
     grid-column: 1 / -1;
@@ -318,6 +324,7 @@ body {
             <button class="door-btn active" data-door="atom" aria-label="Atom door — nodes orbit a nucleus in ring shells">Atom</button>
             <button class="door-btn" data-door="breathing" aria-label="Breathing door — the constellation inhales and exhales">Breathing</button>
             <button class="door-btn" data-door="lanes" aria-label="Lanes door — one horizontal lane per ring">Lanes</button>
+            <button class="door-btn" data-door="nova" aria-label="Nova door — the atom gains state: typing tilts, pasting folds, convergence bursts">Nova</button>
             <button class="door-btn" id="pauseBtn" aria-label="Pause or resume the animation">pause</button>
         </div>
         <button class="action-btn molt" id="moltBtn" aria-label="Molt — compress this session into a seed you can share">molt</button>
@@ -351,6 +358,8 @@ vvARIADNEvv</textarea>
     <div class="status-bar">
         <div class="ring-pills" id="ringPills"></div>
         <div id="openThreadsLabel" style="font-style:italic" aria-live="polite"></div>
+        <span id="novaState" hidden></span>
+        <span id="novaAnnouncer" class="sr-only" aria-live="polite"></span>
         <button class="vitals" id="vitalsBtn" aria-label="Show convergence diagnostics" aria-expanded="false">
             <span>temper: <span class="temper-word" id="temperWord">rest</span></span>
             <span class="conv-meter" aria-hidden="true"><span class="conv-fill" id="convFill" style="width:100%"></span></span>
@@ -624,16 +633,23 @@ function moltSeed(nodes, text, report) {
 
 const SHELL_ORDER = ['pin', 'intent', 'reality', 'aether', 'crossRing', 'gap'];
 
-function layoutAtom(nodes, time, breath) {
-    if (!nodes.length) return [];
-    const mw = Math.max(...nodes.map(n => n.weight), 1);
-    const nr = 0.12, is = 0.14, os = 0.42, ts = 6;
+// The atom's needle-drifted nucleus — FlatAtom owns this math; NovaDoor
+// borrows it as the fold center, same as the Swift door does.
+function atomCenter(nodes, time) {
+    const is = 0.14, os = 0.42, ts = 6;
     const ar = nodes.filter(n => n.ring !== 'pin').at(-1)?.ring || 'reality';
     const asi = SHELL_ORDER.indexOf(ar);
     const na = asi * 1.047 + time * 0.05;
     const asf = asi / (ts - 1);
     const dr = (is + (os - is) * asf) * 0.12;
-    const cx = 0.5 + Math.cos(na) * dr, cy = 0.5 + Math.sin(na) * dr;
+    return { cx: 0.5 + Math.cos(na) * dr, cy: 0.5 + Math.sin(na) * dr, activeRing: ar };
+}
+
+function layoutAtom(nodes, time, breath) {
+    if (!nodes.length) return [];
+    const mw = Math.max(...nodes.map(n => n.weight), 1);
+    const nr = 0.12, is = 0.14, os = 0.42, ts = 6;
+    const { cx, cy, activeRing: ar } = atomCenter(nodes, time);
     const buckets = {};
     for (const n of nodes) (buckets[n.ring] = buckets[n.ring] || []).push(n);
     const laid = [];
@@ -688,6 +704,264 @@ function layoutLanes(nodes, time) {
     });
 }
 
+// ═══════════════════ NOVA — the atom gains state ═══════════════════
+//
+// Door #4 in the browser, door #11 on the Mac. Ported from
+// NovaState.swift (the machine + fold transform, verbatim math) and
+// NovaDoor.swift (signal bookkeeping, blending, the reduce-motion pin).
+//
+// Five states, one trajectory: rest → tilt → fold → tornado → nova.
+// The machine never reads the world — signals in, state out. The door
+// side below maps Zeus's signals to what a browser tab actually has:
+//
+//   store.version change   → your keystrokes            (tilt)
+//   bridge signals         → paste events — a pasted
+//                            seed IS external data      (fold)
+//   fellowship.json        → other Ariadne tabs, via
+//                            BroadcastChannel presence  (tornado)
+//   ConvergenceChecker     → zeusc clean, Intent and
+//                            Reality both present       (nova)
+//   Heimdall wake          → entering the door with a
+//                            populated constellation    (fold greeting)
+
+const NOVA_TUNING = {
+    idleToRest: 30.0,       // tilt → rest after this much idle
+    externalQuiet: 10.0,    // fold → tilt after this long with no external data
+    tornadoSurge: 3,        // pastes within 5s that flip fold → tornado
+    novaDuration: 2.0,      // starburst length — then settle to tilt
+    ramp: { rest: 0.4, tilt: 0.4, fold: 0.8, tornado: 1.2, nova: 2.0 },
+};
+
+// Deterministic: same (signals, now) sequence, same states. One transition
+// per tick — a dying tornado is SEEN passing through fold and tilt.
+const novaMachine = {
+    state: 'rest',
+    stateProgress: 0,
+    stateEnteredAt: null,
+    lastExternalAt: null,
+    // After a nova completes, convergence is "consumed" — no re-trigger
+    // until the checker reports divergence again. One insight, one starburst.
+    convergenceConsumed: false,
+
+    tick(signals, now) {
+        if (signals.bridgeSignalsIn5s > 0 || signals.externalNodeArrivals > 0 ||
+            signals.heimdallWakeNodes > 0) {
+            this.lastExternalAt = now;
+        }
+        const next = this.nextState(signals, now);
+        if (next !== this.state) { this.state = next; this.stateEnteredAt = now; }
+        else if (this.stateEnteredAt === null) this.stateEnteredAt = now;
+        if (!signals.convergence) this.convergenceConsumed = false;
+        const elapsed = now - (this.stateEnteredAt ?? now);
+        this.stateProgress = Math.min(1, Math.max(0, elapsed / NOVA_TUNING.ramp[this.state]));
+        return this.state;
+    },
+
+    nextState(signals, now) {
+        const externalActivity = signals.bridgeSignalsIn5s > 0 || signals.externalNodeArrivals > 0;
+
+        // Nova runs to completion — nothing interrupts the starburst.
+        if (this.state === 'nova') {
+            const elapsed = now - (this.stateEnteredAt ?? now);
+            if (elapsed >= NOVA_TUNING.novaDuration) { this.convergenceConsumed = true; return 'tilt'; }
+            return 'nova';
+        }
+        // Convergence is the payoff — it outranks every other transition,
+        // but only fires from an active state, never from rest.
+        if (signals.convergence && !this.convergenceConsumed &&
+            (this.state === 'tilt' || this.state === 'fold' || this.state === 'tornado')) {
+            return 'nova';
+        }
+        switch (this.state) {
+            case 'rest':
+                if (signals.heimdallWakeNodes > 0) return 'fold';
+                if (signals.versionDelta > 0) return 'tilt';
+                return 'rest';
+            case 'tilt':
+                if (externalActivity) return 'fold';
+                if (signals.secondsSinceLastChange >= NOVA_TUNING.idleToRest) return 'rest';
+                return 'tilt';
+            case 'fold': {
+                if (signals.bridgeSignalsIn5s >= NOVA_TUNING.tornadoSurge ||
+                    signals.fellowshipCount > 1) return 'tornado';
+                const sinceExternal = this.lastExternalAt === null ? Infinity : now - this.lastExternalAt;
+                if (sinceExternal >= NOVA_TUNING.externalQuiet) return 'tilt';
+                return 'fold';
+            }
+            case 'tornado':
+                if (signals.bridgeSignalsIn5s < NOVA_TUNING.tornadoSurge &&
+                    signals.fellowshipCount <= 1) return 'fold';
+                return 'tornado';
+        }
+        return this.state;
+    },
+};
+
+// The fold transform — NovaFold.apply, verbatim math from the April spec.
+// Pure function: position in, position out.
+function novaFold(px, py, cx, cy, state, progress, isExternal, time) {
+    const rx = px - cx, ry = py - cy;
+    switch (state) {
+        case 'rest':
+            return { x: px, y: py };
+        case 'tilt': {
+            // Gentle Y compression — the atom leans (max 8%)
+            return { x: cx + rx, y: cy + ry * (1.0 - progress * 0.08) };
+        }
+        case 'fold': {
+            // Two halves begin separating — external descends, thought rises
+            const foldFactor = progress * 0.3;
+            const yShift = isExternal ? -foldFactor * 0.15 : foldFactor * 0.15;
+            const yCompress = 1.0 - progress * 0.2;
+            return { x: cx + rx, y: cy + ry * yCompress + yShift };
+        }
+        case 'tornado': {
+            // Spiral toward center from opposite directions
+            const spiralAngle = time * 2.0 * (isExternal ? 1.0 : -1.0);
+            const spiralRadius = Math.hypot(rx, ry) * (1.0 - progress * 0.4);
+            const angle = Math.atan2(ry, rx) + spiralAngle * progress;
+            return { x: cx + Math.cos(angle) * spiralRadius, y: cy + Math.sin(angle) * spiralRadius };
+        }
+        case 'nova': {
+            if (progress < 0.3) {
+                // Converge phase
+                const c = progress / 0.3;
+                return { x: cx + rx * (1 - c * 0.8), y: cy + ry * (1 - c * 0.8) };
+            }
+            // Burst phase — nodes return toward tilt positions
+            const bp = (progress - 0.3) / 0.7;
+            const s = 0.2 + bp * 0.8;
+            return { x: cx + rx * s, y: cy + ry * 0.92 * s };
+        }
+    }
+    return { x: px, y: py };
+}
+
+// ── Door-side signal bookkeeping — the browser's read of the world ──
+let novaInputVersion = 0, novaLastSeenVersion = null, novaLastChangeAt = null;
+let novaPasteTimes = [], novaPasteSnapshot = null, novaArrivalsPending = 0;
+const novaExternalIDs = new Set();
+let novaBlendFrom = 'rest', novaLastEffective = 'rest', novaAnnounced = 'rest';
+
+// Fellowship: other Ariadne tabs on this origin, found over BroadcastChannel.
+// Peers expire after 6s of silence — closing a tab dissolves the tornado.
+const fellowshipId = fnv1a(String(Math.random()) + performance.now());
+const fellowshipPeers = new Map();
+if ('BroadcastChannel' in window) {
+    const bc = new BroadcastChannel('ariadne-fellowship');
+    bc.onmessage = e => {
+        if (e.data && e.data.id && e.data.id !== fellowshipId)
+            fellowshipPeers.set(e.data.id, performance.now());
+    };
+    bc.postMessage({ id: fellowshipId });
+    setInterval(() => bc.postMessage({ id: fellowshipId }), 2000);
+}
+function fellowshipCount() {
+    const now = performance.now();
+    for (const [id, t] of fellowshipPeers) if (now - t > 6000) fellowshipPeers.delete(id);
+    return 1 + fellowshipPeers.size;
+}
+
+function novaComputeSignals(nodes, now) {
+    const s = { versionDelta: 0, externalNodeArrivals: 0, bridgeSignalsIn5s: 0,
+        fellowshipCount: fellowshipCount(), convergence: false,
+        secondsSinceLastChange: 0, heimdallWakeNodes: 0 };
+    if (novaLastSeenVersion !== null) {
+        s.versionDelta = Math.max(0, novaInputVersion - novaLastSeenVersion);
+        if (s.versionDelta > 0) novaLastChangeAt = now;
+        s.externalNodeArrivals = novaArrivalsPending;
+        novaArrivalsPending = 0;
+    } else if (nodes.length > 0) {
+        // First tick with a populated constellation: a restored session, or
+        // walking through this door mid-write. Either way the atom greets
+        // accumulated state by folding it in.
+        s.heimdallWakeNodes = nodes.length;
+        novaLastChangeAt = now;
+    } else {
+        novaLastChangeAt = now;
+    }
+    novaLastSeenVersion = novaInputVersion;
+    s.secondsSinceLastChange = now - (novaLastChangeAt ?? now);
+    novaPasteTimes = novaPasteTimes.filter(t => now - t <= 5.0);
+    s.bridgeSignalsIn5s = novaPasteTimes.length;
+    // Intent-Reality type-safety: both rings present and zeusc clean.
+    // An empty or one-sided constellation never converges — the starburst
+    // needs both rings present and clean.
+    const counts = {};
+    for (const n of nodes) counts[n.ring] = (counts[n.ring] || 0) + 1;
+    const clean = !lastReport.diagnostics.some(d => d.severity === 'error' || d.severity === 'warning');
+    s.convergence = (counts.intent || 0) > 0 && (counts.reality || 0) > 0 && clean;
+    return s;
+}
+
+const NOVA_PHRASES = {
+    rest: 'Constellation at rest',
+    tilt: 'Constellation tilting toward you',
+    fold: 'Constellation folding in external data',
+    tornado: 'Constellation spiraling, multiple instances active',
+    nova: 'Intent and reality converged, starburst',
+};
+
+function novaAnnounce(eff) {
+    if (eff === novaAnnounced) return;
+    novaAnnounced = eff;
+    document.getElementById('novaAnnouncer').textContent = NOVA_PHRASES[eff];
+}
+
+function novaUpdateReadout(eff) {
+    const el = document.getElementById('novaState');
+    el.hidden = currentDoor !== 'nova';
+    el.textContent = 'nova: ' + eff;
+    el.classList.toggle('burst', eff === 'nova');
+}
+
+function layoutNova(nodes, time, breath) {
+    const now = performance.now() / 1000;
+    novaMachine.tick(novaComputeSignals(nodes, now), now);
+
+    // Reduce-motion pins the door to rest/tilt — fold, tornado, and nova
+    // never animate. The machine still ticks so state is current the
+    // moment the setting flips back.
+    let eff = novaMachine.state;
+    if (reducedMotion) eff = eff === 'rest' ? 'rest' : 'tilt';
+
+    novaAnnounce(eff);
+    novaUpdateReadout(eff);
+
+    // Transition continuity: blend from the previous state's fully-ramped
+    // transform into the new state's, driven by the new ramp. At progress 0
+    // the atom looks exactly as it did the frame before.
+    if (eff !== novaLastEffective) { novaBlendFrom = novaLastEffective; novaLastEffective = eff; }
+    const progress = novaMachine.stateProgress;
+    if (progress >= 1) novaBlendFrom = eff;
+    const blending = novaBlendFrom !== eff;
+
+    const base = layoutAtom(nodes, time, breath);
+    // Steady rest is FlatAtom, pixel for pixel — the identity transform is
+    // skipped, not applied, so drift can never creep in.
+    if (!base.length || (eff === 'rest' && !blending)) return base;
+
+    const { cx, cy } = atomCenter(nodes, time);
+    return base.map(n => {
+        const isExt = novaExternalIDs.has(n.id);
+        const target = novaFold(n.x, n.y, cx, cy, eff, progress, isExt, time);
+        let x = target.x, y = target.y;
+        if (blending) {
+            const src = novaFold(n.x, n.y, cx, cy, novaBlendFrom, 1.0, isExt, time);
+            x = src.x + (target.x - src.x) * progress;
+            y = src.y + (target.y - src.y) * progress;
+        }
+        let size = n.size;
+        // Placeholder burst: scale-pulse through the burst phase.
+        // (On the Mac this is a particle shader — still open there too.)
+        if (eff === 'nova' && progress >= 0.3) {
+            const bp = (progress - 0.3) / 0.7;
+            size *= 1.0 + 0.6 * Math.sin(bp * Math.PI);
+        }
+        return { ...n, x, y, size };
+    });
+}
+
 // ═══════════════════ RENDER ═══════════════════
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -719,8 +993,10 @@ function resizeCanvas() {
 function drawFrame() {
     const w = canvas.width / devicePixelRatio, h = canvas.height / devicePixelRatio;
     const breath = 0.5 + 0.5 * Math.sin(animTime * 0.4);
-    const fn = currentDoor === 'breathing' ? layoutBreathing : currentDoor === 'lanes' ? layoutLanes : layoutAtom;
-    laidNodes = fn(currentNodes, animTime, breath);
+    laidNodes = currentDoor === 'nova' ? layoutNova(currentNodes, animTime, breath)
+        : currentDoor === 'breathing' ? layoutBreathing(currentNodes, animTime, breath)
+        : currentDoor === 'lanes' ? layoutLanes(currentNodes, animTime, breath)
+        : layoutAtom(currentNodes, animTime, breath);
 
     ctx.clearRect(0, 0, w, h);
     for (const s of stars) {
@@ -872,6 +1148,7 @@ function updateVitals(report) {
 let parseTimer = null;
 function onInput() {
     lastInputTime = performance.now();
+    novaInputVersion++;
     const input = document.getElementById('input');
     const text = input.value;
     const segments = classify(text);
@@ -880,6 +1157,14 @@ function onInput() {
     clearTimeout(parseTimer);
     parseTimer = setTimeout(() => {
         currentNodes = parseNodes(text);
+        // Paste diff: nodes that appeared through a paste are external —
+        // top-funnel material for the Nova fold.
+        if (novaPasteSnapshot) {
+            for (const n of currentNodes) {
+                if (!novaPasteSnapshot.has(n.id)) { novaExternalIDs.add(n.id); novaArrivalsPending++; }
+            }
+            novaPasteSnapshot = null;
+        }
         updateVitals(checkConvergence(currentNodes));
         if (paused) drawFrame();
     }, 150);
@@ -887,12 +1172,19 @@ function onInput() {
 
 document.getElementById('input').addEventListener('input', onInput);
 
+// A paste is external data arriving — the bridge signal of the browser.
+document.getElementById('input').addEventListener('paste', () => {
+    novaPasteTimes.push(performance.now() / 1000);
+    novaPasteSnapshot = new Set(currentNodes.map(n => n.id));
+});
+
 document.querySelectorAll('.door-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         if (btn.id === 'pauseBtn') return;
         document.querySelector('.door-btn.active:not(#pauseBtn)')?.classList.remove('active');
         btn.classList.add('active');
         currentDoor = btn.dataset.door;
+        document.getElementById('novaState').hidden = currentDoor !== 'nova';
         if (paused) drawFrame();
     });
 });

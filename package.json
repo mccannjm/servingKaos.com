@@ -1,0 +1,12 @@
+{
+  "name": "servingkaos.com",
+  "private": true,
+  "description": "Static site. serve.js previews it, test/verify.js gates it. Zero runtime dependencies — playwright-core drives the test browser only.",
+  "scripts": {
+    "serve": "node serve.js",
+    "test": "node test/verify.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.49.0"
+  }
+}
