@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ariadne — the thread, live</title>
     <link rel="icon" href="favicon.svg">
+    <meta property="og:image" content="https://servingkaos.com/og-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
 <meta name="description" content="The Zeus kernel running in your browser. Type one bracket. The rings will find you.">
 <meta property="og:title" content="Ariadne — the thread, live">
 <meta property="og:description" content="Same classifier. Same layout math. Same colors. No server, no account, no tracking. View source — it's all here.">
@@ -378,6 +382,17 @@ body {
     .constellation-panel { min-height: 45vh; }
 }
 </style>
+    <style>
+        /* travel: small screens + reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01s !important;
+                animation-delay: 0s !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01s !important;
+            }
+        }
+    </style>
 </head>
 <body>
 

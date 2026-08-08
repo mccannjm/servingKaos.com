@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zeus — Rich Spirits</title>
     <link rel="icon" href="favicon.svg">
+    <meta property="og:image" content="https://servingkaos.com/og-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="description" content="One caterpillar's journey through music. Mosh to Handlebars to the Butterfly.">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -198,6 +202,23 @@
             font-size: 2em;
             color: #555;
             margin: 16px 0;
+        }
+    </style>
+    <style>
+        /* travel: small screens + reduced motion */
+        @media (max-width: 640px) {
+            body { font-size: 13px; }
+            #nav-dots { right: 8px; }
+            .slide { padding-left: 20px; padding-right: 20px; }
+            .notation { padding: 14px 16px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01s !important;
+                animation-delay: 0s !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01s !important;
+            }
         }
     </style>
 </head>
@@ -761,7 +782,18 @@ function animate(time) {
 
 updateArrowTarget();
 updateActiveSlide();
-requestAnimationFrame(animate);
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function drawStill() {
+    drawStars(0);
+    if (typeof drawRoots === 'function') drawRoots(0);
+}
+if (REDUCED_MOTION) {
+    drawStill();
+    window.addEventListener('scroll', drawStill);
+    window.addEventListener('resize', () => setTimeout(drawStill, 60));
+} else {
+    requestAnimationFrame(animate);
+}
 </script>
 
 </body>

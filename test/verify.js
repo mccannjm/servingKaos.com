@@ -67,6 +67,9 @@ async function main() {
         }
     }
     check(dead.length === 0, `internal links resolve (${files.length} pages)`, dead.join(', '));
+    const noOg = files.filter(f => !fs.readFileSync(path.join(SITE, f), 'utf8').includes('og:image'));
+    check(noOg.length === 0, 'every page carries the share card (og:image)', noOg.join(', '));
+    check(fs.existsSync(path.join(SITE, 'og-card.png')), 'og-card.png exists');
 
     // ── serve the site like Pages does ──
     const server = spawn(process.execPath, [path.join(SITE, 'serve.js'), String(PORT)], { stdio: 'ignore' });
@@ -94,6 +97,44 @@ async function main() {
             await page.waitForTimeout(500);
             check(pageErrors.length === 0, f, pageErrors.join(' | '));
         }
+
+        // ── 2b. Mobile sweep: every page at phone width, no errors,
+        //        and the body never scrolls sideways ──
+        console.log('mobile (390×844):');
+        const mobilePage = await context.newPage();
+        watch(mobilePage);
+        await mobilePage.setViewportSize({ width: 390, height: 844 });
+        for (const f of files) {
+            pageErrors.length = 0;
+            await mobilePage.goto(`${base}/${f}`);
+            await mobilePage.waitForTimeout(400);
+            const overflow = await mobilePage.evaluate(() =>
+                document.documentElement.scrollWidth - document.documentElement.clientWidth);
+            const okErr = pageErrors.length === 0;
+            check(okErr && overflow <= 1, f, okErr ? `${overflow}px sideways overflow` : pageErrors.join(' | '));
+        }
+        await mobilePage.close();
+
+        // ── 2c. Reduced motion: pages must still arrive at their
+        //        visible end-state with animation neutralized ──
+        console.log('reduced motion:');
+        const rmContext = await browser.newContext({
+            viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
+        const rmPage = await rmContext.newPage();
+        watch(rmPage);
+        pageErrors.length = 0;
+        await rmPage.goto(`${base}/index.html`);
+        await rmPage.waitForTimeout(500);
+        const titleOpacity = await rmPage.$eval('.title', el => getComputedStyle(el).opacity);
+        check(titleOpacity === '1', 'index title reaches full opacity without the fade', titleOpacity);
+        await rmPage.goto(`${base}/honeytree.html`);
+        await rmPage.waitForTimeout(500);
+        await rmPage.evaluate(() => document.querySelectorAll('.slide')[12]?.scrollIntoView());
+        await rmPage.waitForTimeout(400);
+        const butterflyOpacity = await rmPage.$eval('.butterfly', el => getComputedStyle(el).opacity);
+        check(butterflyOpacity === '1', 'the butterfly emerges without the animation', butterflyOpacity);
+        check(pageErrors.length === 0, 'no errors under reduced motion', pageErrors.join(' | '));
+        await rmContext.close();
 
         // ── 3. Ariadne kernel ──
         console.log('ariadne kernel:');

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zeus — The World Caterpillar</title>
     <link rel="icon" href="favicon.svg">
+    <meta property="og:image" content="https://servingkaos.com/og-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="description" content="The gaps in history are where people showed up anyway.">
     <meta property="og:title" content="Zeus — The World Caterpillar">
     <meta property="og:description" content="Fire. Language. Democracy. War. Internet. AI. Same three rings. Every gap is someone showing up.">
@@ -183,6 +187,23 @@
         .link-tree:hover {
             border-color: currentColor;
             box-shadow: 0 0 20px rgba(255,255,255,0.05);
+        }
+    </style>
+    <style>
+        /* travel: small screens + reduced motion */
+        @media (max-width: 640px) {
+            body { font-size: 13px; }
+            #nav-dots { right: 8px; }
+            .slide { padding-left: 20px; padding-right: 20px; }
+            .notation { padding: 14px 16px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01s !important;
+                animation-delay: 0s !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01s !important;
+            }
         }
     </style>
 </head>
@@ -775,7 +796,18 @@ function animate(time) {
 
 updateArrowTarget();
 updateActiveSlide();
-requestAnimationFrame(animate);
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function drawStill() {
+    drawStars(0);
+    if (typeof drawRoots === 'function') drawRoots(0);
+}
+if (REDUCED_MOTION) {
+    drawStill();
+    window.addEventListener('scroll', drawStill);
+    window.addEventListener('resize', () => setTimeout(drawStill, 60));
+} else {
+    requestAnimationFrame(animate);
+}
 </script>
 
 </body>
