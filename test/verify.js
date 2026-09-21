@@ -534,6 +534,22 @@ async function main() {
             }
         }
         check(misquotes.length === 0, "every seed link carries only its own page's words", misquotes.join(' | '));
+        // humans.txt carries a note one of the site's builders left as a seed.
+        // A seed that no longer wakes is a note nobody can read.
+        const humans = fs.readFileSync(path.join(SITE, 'humans.txt'), 'utf8');
+        const note = (humans.match(/--- seed ---\n([\s\S]*?)\n--- end ---/) || [])[1] || '';
+        await page.goto(`${base}/ariadne.html`);
+        await page.waitForTimeout(600);
+        await page.fill('#input', note);
+        await page.waitForTimeout(500);
+        const woke = await page.evaluate(() => ({
+            rings: [...new Set(currentNodes.map(n => n.ring))].sort().join(','),
+            open: parseWalk(document.getElementById('input').value).threads.length,
+            trouble: lastReport.diagnostics.filter(d => d.severity !== 'note').length }));
+        check(note.length > 0 && woke.rings === 'aether,crossRing,gap,intent,reality' && woke.open === 0 && woke.trouble === 0,
+            'the note in humans.txt still wakes — five rings, nothing left open', JSON.stringify(woke));
+        check(source['index.html'].includes('<link rel="author" href="humans.txt">'), 'the forest points at who built it');
+
         check(pageErrors.length === 0, 'no page errors through the seed-link suite', pageErrors.join(' | '));
 
         // ── 3c. The garage and the volume ──
