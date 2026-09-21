@@ -3,7 +3,10 @@
 // main auto-deploys, so this is the last stop.
 //
 // What it checks:
-//   1. every internal link on every page resolves to a real file
+//   1. every internal link (href and src) resolves to a real file, with the
+//      exact case Pages will demand; every page is reachable from the
+//      forest; share tags are complete; no duplicate ids, no torn tags;
+//      a miss gets 404.html and a malformed URL doesn't drop the server
 //   2. every page loads over http with zero console errors
 //   3. the Ariadne kernel: classification, zeusc scores, the molt seed,
 //      the seed round-trip, the one-surface editor (transparent-ink
@@ -58,23 +61,98 @@ async function main() {
     // ── 1. Static link check (no browser needed) ──
     console.log('links:');
     const files = fs.readdirSync(SITE).filter(f => f.endsWith('.html'));
+    const source = Object.fromEntries(files.map(f => [f, fs.readFileSync(path.join(SITE, f), 'utf8')]));
+
+    // href AND src — a missing image is as dead as a missing page. Pages is
+    // case-sensitive and macOS isn't, so match the directory listing exactly
+    // rather than trusting existsSync to be strict.
+    const onDisk = new Set(fs.readdirSync(SITE));
+    const localTarget = h => {
+        const p = h.split('#')[0].split('?')[0].replace(/^\//, '');
+        return p === '' ? 'index.html' : p;
+    };
     let dead = [];
+    const linksOf = {};
     for (const f of files) {
-        const html = fs.readFileSync(path.join(SITE, f), 'utf8');
-        for (const [, h] of html.matchAll(/href="([^"]+)"/g)) {
-            if (/^(https?:|#|mailto:)/.test(h)) continue;
-            if (!fs.existsSync(path.join(SITE, h.split('#')[0]))) dead.push(`${f} -> ${h}`);
+        linksOf[f] = [];
+        for (const [, , h] of source[f].matchAll(/\b(href|src)="([^"]+)"/g)) {
+            if (/^(https?:|#|mailto:|data:)/.test(h)) continue;
+            const target = localTarget(h);
+            linksOf[f].push(target);
+            if (!onDisk.has(target)) dead.push(`${f} -> ${h}`);
         }
     }
-    check(dead.length === 0, `internal links resolve (${files.length} pages)`, dead.join(', '));
-    const noOg = files.filter(f => !fs.readFileSync(path.join(SITE, f), 'utf8').includes('og:image'));
+    check(dead.length === 0, `internal links resolve, case and all (${files.length} pages)`, dead.join(', '));
+
+    // Our own domain, spelled out in full (og:image, og:url, canonical), slips
+    // past the check above as "external". It isn't — it's this folder.
+    const HOME = 'https://servingkaos.com/';
+    const deadHome = [];
+    for (const f of files) {
+        for (const [, u] of source[f].matchAll(/(?:href|src|content)="(https:\/\/servingkaos\.com\/[^"]*)"/g)) {
+            const parts = localTarget(u.slice(HOME.length - 1)).split('/');
+            if (!fs.existsSync(path.join(SITE, ...parts))
+                || !fs.readdirSync(path.join(SITE, ...parts.slice(0, -1))).includes(parts.at(-1))) {
+                deadHome.push(`${f} -> ${u}`);
+            }
+        }
+    }
+    check(deadHome.length === 0, 'every servingkaos.com address we print is a real file', deadHome.join(', '));
+    const selfCanon = files.filter(f => f !== '404.html'
+        && !source[f].includes(`rel="canonical" href="${HOME}${f === 'index.html' ? '' : f}"`));
+    check(selfCanon.length === 0, 'each canonical points at its own page', selfCanon.join(', '));
+
+    // Orphans: a page nothing links to is broken from the other side.
+    // Walk out from the hub; 404.html is reached by missing, not by linking.
+    const seen = new Set(['index.html']);
+    const queue = ['index.html'];
+    while (queue.length) {
+        for (const t of linksOf[queue.shift()] || []) {
+            if (t.endsWith('.html') && !seen.has(t)) { seen.add(t); queue.push(t); }
+        }
+    }
+    const orphans = files.filter(f => !seen.has(f) && f !== '404.html');
+    check(orphans.length === 0, 'every page is reachable from the forest', orphans.join(', '));
+
+    const lacks = needle => files.filter(f => !source[f].includes(needle));
+    const noOg = lacks('og:image');
     check(noOg.length === 0, 'every page carries the share card (og:image)', noOg.join(', '));
+    const noWords = files.filter(f => !source[f].includes('og:title') || !source[f].includes('og:description'));
+    check(noWords.length === 0, 'every share card has its words (og:title + og:description)', noWords.join(', '));
     check(fs.existsSync(path.join(SITE, 'og-card.png')), 'og-card.png exists');
+
+    // Markup hygiene — both of these shipped once.
+    const dupIds = [], leaked = [];
+    for (const f of files) {
+        const counts = {};
+        for (const [, id] of source[f].matchAll(/\sid="([^"]+)"/g)) counts[id] = (counts[id] || 0) + 1;
+        const dups = Object.keys(counts).filter(id => counts[id] > 1);
+        if (dups.length) dupIds.push(`${f}: ${dups.join(' ')}`);
+        // An attribute sitting in text content means an edit tore a tag in half.
+        // Scripts and styles are stripped first — JS builds markup in strings.
+        const body = source[f].replace(/<(script|style)[\s\S]*?<\/\1>/g, '');
+        for (const m of body.matchAll(/>[^<]*\b(?:style|class|href)="[^<]*</g)) {
+            leaked.push(`${f}: ${m[0].slice(1, 50).trim()}…`);
+        }
+    }
+    check(dupIds.length === 0, 'no duplicate ids', dupIds.join(' | '));
+    check(leaked.length === 0, 'no torn tags leaking attributes into the text', leaked.join(' | '));
 
     // ── serve the site like Pages does ──
     const server = spawn(process.execPath, [path.join(SITE, 'serve.js'), String(PORT)], { stdio: 'ignore' });
     await new Promise(r => setTimeout(r, 400));
     const base = `http://localhost:${PORT}`;
+
+    // ── 1b. A miss lands somewhere — the way Pages answers it ──
+    console.log('the miss:');
+    const miss = await fetch(`${base}/ubuntutrees.html`);
+    const missBody = await miss.text();
+    check(miss.status === 404 && missBody.includes('the forest is at /'),
+        'a missing page gets 404.html and a 404 status', `status ${miss.status}`);
+    const torn = await fetch(`${base}/%E0%A4`).then(r => r.status).catch(e => e.message);
+    const alive = await fetch(`${base}/index.html`).then(r => r.status).catch(e => e.message);
+    check(torn === 404 && alive === 200,
+        'a malformed URL is a miss, not a crash — the server is still up', `miss ${torn}, then ${alive}`);
 
     const browser = await chromium.launch({ executablePath: findChrome() });
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -91,12 +169,22 @@ async function main() {
 
         // ── 2. Every page loads clean ──
         console.log('pages:');
+        const defaultBlue = [];
         for (const f of files) {
             pageErrors.length = 0;
             await page.goto(`${base}/${f}`);
             await page.waitForTimeout(500);
             check(pageErrors.length === 0, f, pageErrors.join(' | '));
+            // Text inside a link with no colour of its own inherits the
+            // browser's #0000EE — invisible navy on this sky, purple once
+            // visited. The hub's ring labels shipped that way for months.
+            const stray = await page.evaluate(() => [...document.querySelectorAll('a, a *')]
+                .filter(el => [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))
+                .filter(el => ['rgb(0, 0, 238)', 'rgb(85, 26, 139)'].includes(getComputedStyle(el).color))
+                .map(el => el.textContent.trim().slice(0, 24)));
+            if (stray.length) defaultBlue.push(`${f}: ${stray.join(', ')}`);
         }
+        check(defaultBlue.length === 0, 'no link text left in browser-default blue', defaultBlue.join(' | '));
 
         // ── 2b. Mobile sweep: every page at phone width, no errors,
         //        and the body never scrolls sideways ──
@@ -238,6 +326,64 @@ async function main() {
         const volumeText = fs.readFileSync(path.join(SITE, 'volume.html'), 'utf8');
         check(volumeText.includes('FEUER FREI') && volumeText.includes('BOYBAND WAR') && volumeText.includes('SILO'),
             'the comparisons survived the move to maximum volume');
+
+        // ── 3d. The decks answer the keyboard ──
+        console.log('keys:');
+        const decks = files.filter(f => source[f].includes('class="slide'));
+        const deaf = decks.filter(f => !source[f].includes('keys: the deck answers the keyboard'));
+        check(deaf.length === 0, `all ${decks.length} decks carry the key handler`, deaf.join(', '));
+
+        const slideAt = p => p.evaluate(() => {
+            const deck = [...document.querySelectorAll('.slide')], mid = innerHeight / 2;
+            let at = 0, best = Infinity;
+            deck.forEach((s, i) => {
+                const r = s.getBoundingClientRect(), d = Math.abs(r.top + r.height / 2 - mid);
+                if (d < best) { best = d; at = i; }
+            });
+            return at;
+        });
+        pageErrors.length = 0;
+        await page.goto(`${base}/kansas.html`);
+        await page.waitForTimeout(500);
+        await page.keyboard.press('ArrowDown');
+        await page.waitForTimeout(900);
+        const afterDown = await slideAt(page);
+        await page.keyboard.press('j');
+        await page.waitForTimeout(900);
+        const afterJ = await slideAt(page);
+        await page.keyboard.press('ArrowUp');
+        await page.waitForTimeout(900);
+        const afterUp = await slideAt(page);
+        check(afterDown === 1 && afterJ === 2 && afterUp === 1,
+            '↓ and j step forward a slide, ↑ steps back', `${afterDown}, ${afterJ}, ${afterUp}`);
+        await page.keyboard.press('End');
+        await page.waitForTimeout(1200);
+        const lastSlide = await page.locator('.slide').count() - 1;
+        check(await slideAt(page) === lastSlide, 'End lands on the closing slide', String(await slideAt(page)));
+
+        // The rule that matters: on a screen shorter than the slide, a key
+        // must scroll, not jump — nothing below the fold gets skipped.
+        const shortPage = await context.newPage();
+        watch(shortPage);
+        await shortPage.setViewportSize({ width: 390, height: 420 });
+        await shortPage.goto(`${base}/kansas.html`);
+        await shortPage.waitForTimeout(500);
+        const tall = await shortPage.evaluate(() => {
+            const i = [...document.querySelectorAll('.slide')]
+                .findIndex(s => s.getBoundingClientRect().height > innerHeight + 200);
+            if (i >= 0) document.querySelectorAll('.slide')[i].scrollIntoView({ block: 'start' });
+            return i;
+        });
+        await shortPage.waitForTimeout(300);
+        const yBefore = await shortPage.evaluate(() => scrollY);
+        await shortPage.keyboard.press('ArrowDown');
+        await shortPage.waitForTimeout(700);
+        const moved = await shortPage.evaluate(() => scrollY) - yBefore;
+        check(tall >= 0 && moved > 0 && moved < 200 && await slideAt(shortPage) === tall,
+            'a slide taller than the screen scrolls instead of jumping — nothing skipped',
+            `slide ${tall}, moved ${moved}px, now on ${await slideAt(shortPage)}`);
+        await shortPage.close();
+        check(pageErrors.length === 0, 'no page errors through the keys suite', pageErrors.join(' | '));
 
         // ── 4. Nova door ──
         console.log('nova door:');

@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MAXIMUM VOLUME</title>
     <link rel="icon" href="favicon.svg">
-    <meta property="og:image" content="https://servingkaos.com/og-card.png">
+    <meta property="og:image" content="https://servingkaos.com/og/volume.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:url" content="https://servingkaos.com/volume.html">
+    <link rel="canonical" href="https://servingkaos.com/volume.html">
+    <meta name="theme-color" content="#080816">
     <meta name="description" content="German metal, country ballads, military hype, boyband wars, dystopian TV. Same three rings. Maximum volume.">
     <meta property="og:title" content="MAXIMUM VOLUME">
     <meta property="og:description" content="None of it belongs in the same sentence. All of it decomposes the same way.">
@@ -211,6 +214,11 @@
         }
     </style>
     <style>
+        /* tabbing through gets the same gold the mouse does */
+        a:focus-visible, button:focus-visible {
+            outline: 1px solid var(--gold);
+            outline-offset: 4px;
+        }
         /* travel: small screens + reduced motion */
         @media (max-width: 640px) {
             body { font-size: 13px; }
@@ -602,6 +610,55 @@ if (REDUCED_MOTION) {
 } else {
     requestAnimationFrame(animate);
 }
+</script>
+
+<script>
+// keys: the deck answers the keyboard. ↓ j space pagedown → next slide,
+// ↑ k shift+space pageup → previous, home/end → the ends. It never hides
+// anything: while part of the current slide is still off-screen the key
+// scrolls the way it always has, and only the last press jumps.
+(() => {
+    const deck = [...document.querySelectorAll('.slide')];
+    if (deck.length < 2) return;
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const NEXT = ['ArrowDown', 'j', 'PageDown', ' '], PREV = ['ArrowUp', 'k', 'PageUp'];
+
+    function current() {
+        const mid = innerHeight / 2;
+        let at = 0, best = Infinity;
+        deck.forEach((s, i) => {
+            const r = s.getBoundingClientRect();
+            const d = Math.abs(r.top + r.height / 2 - mid);
+            if (d < best) { best = d; at = i; }
+        });
+        return at;
+    }
+    function go(i) {
+        const s = deck[Math.max(0, Math.min(deck.length - 1, i))];
+        s.scrollIntoView({
+            behavior: calm ? 'auto' : 'smooth',
+            block: s.getBoundingClientRect().height < innerHeight ? 'center' : 'start',
+        });
+    }
+
+    addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        // Typing, or a focused control that owns space/enter — not ours.
+        if (e.target.closest('input, textarea, select, button, a, [contenteditable]')) return;
+        let dir = NEXT.includes(e.key) ? 1 : PREV.includes(e.key) ? -1 : 0;
+        if (e.key === ' ' && e.shiftKey) dir = -1;
+        if (e.key === 'Home' || e.key === 'End') {
+            e.preventDefault(); go(e.key === 'Home' ? 0 : deck.length - 1); return;
+        }
+        if (!dir) return;
+        const at = current(), r = deck[at].getBoundingClientRect();
+        if (dir > 0 && r.bottom > innerHeight + 8) return;   // more of this slide below
+        if (dir < 0 && r.top < -8) return;                   // more of it above
+        if (at + dir < 0 || at + dir >= deck.length) return; // the ends scroll natively
+        e.preventDefault();
+        go(at + dir);
+    });
+})();
 </script>
 
 </body>

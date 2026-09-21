@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three Rings</title>
+    <link rel="icon" href="favicon.svg">
+    <meta property="og:image" content="https://servingkaos.com/og/rings.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:url" content="https://servingkaos.com/rings.html">
+    <link rel="canonical" href="https://servingkaos.com/rings.html">
+    <meta name="theme-color" content="#080816">
+    <meta name="description" content="The same shape runs through everything. Intent. Reality. Gap. Humanity. Government. Technology.">
+    <meta property="og:title" content="Three Rings">
+    <meta property="og:description" content="Brackets exist because names fail but shapes don't.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080816;
+            --gold: #ffd700;
+            --teal: #4ecdc4;
+            --blue: #5b8def;
+            --pink: #e07bda;
+            --green: #a0dca0;
+            --red: #ff6b6b;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: var(--bg);
+            color: #888;
+            overflow-x: hidden;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide {
+            position: relative;
+            z-index: 1;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px 40px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+
+        .slide.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .big {
+            font-size: 3.5em;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            line-height: 1.2;
+        }
+
+        .medium {
+            font-size: 1.6em;
+            font-weight: 200;
+            letter-spacing: 0.1em;
+            margin-top: 16px;
+        }
+
+        .small {
+            font-size: 1em;
+            color: #666;
+            margin-top: 20px;
+            line-height: 1.9;
+            max-width: 560px;
+        }
+
+        .whisper {
+            font-size: 0.75em;
+            color: #555;
+            margin-top: 30px;
+            letter-spacing: 0.15em;
+        }
+
+        .ring-label {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-size: 0.7em;
+            letter-spacing: 0.15em;
+            margin: 4px;
+        }
+
+        .intent { color: var(--gold); border: 1px solid var(--gold); }
+        .reality { color: var(--teal); border: 1px solid var(--teal); }
+        .gap { color: var(--blue); border: 1px solid var(--blue); }
+        .pin { color: var(--red); border: 1px solid var(--red); }
+        .cross { color: var(--pink); border: 1px solid var(--pink); }
+        .aether { color: var(--green); border: 1px solid var(--green); }
+
+        .gold { color: var(--gold); }
+        .teal { color: var(--teal); }
+        .blue { color: var(--blue); }
+        .red { color: var(--red); }
+        .pink { color: var(--pink); }
+        .green { color: var(--green); }
+        .white { color: #ccc; }
+
+        .three-rings {
+            display: flex;
+            gap: 0;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+        }
+
+        .ring-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px solid;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            margin: 0 -15px;
+        }
+
+        .domain-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+            max-width: 800px;
+            margin: 30px auto;
+            text-align: left;
+        }
+
+        .domain-col h3 {
+            font-size: 0.85em;
+            letter-spacing: 0.15em;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+        }
+
+        .domain-col .row {
+            font-size: 0.8em;
+            line-height: 1.6;
+            margin-bottom: 12px;
+            padding-left: 8px;
+            border-left: 2px solid #222;
+        }
+
+        .convergence-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin: 12px 0;
+            font-size: 0.9em;
+        }
+
+        .convergence-line .arrow { color: #333; }
+
+        .thesis {
+            font-size: 1.4em;
+            font-weight: 200;
+            max-width: 600px;
+            line-height: 1.8;
+            letter-spacing: 0.02em;
+        }
+
+        .bracket {
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 500px;
+            margin: 30px auto;
+            text-align: left;
+        }
+
+        .timeline-entry {
+            display: flex;
+            gap: 16px;
+            align-items: baseline;
+        }
+
+        .timeline-date {
+            font-size: 0.75em;
+            color: #444;
+            min-width: 100px;
+            text-align: right;
+            letter-spacing: 0.1em;
+        }
+
+        .timeline-text {
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+
+        .link-tree {
+            display: inline-block;
+            margin: 12px 8px;
+            padding: 12px 28px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        .link-tree:hover {
+            color: var(--gold);
+            border-color: var(--gold);
+        }
+
+        @media (max-width: 700px) {
+            .big { font-size: 2.2em; }
+            .medium { font-size: 1.2em; }
+            .domain-grid { grid-template-columns: 1fr; gap: 30px; }
+            .ring-circle { width: 90px; height: 90px; font-size: 0.7em; }
+            .three-rings { margin: 20px 0; }
+        }
+    </style>
+    <style>
+        /* tabbing through gets the same gold the mouse does */
+        a:focus-visible, button:focus-visible {
+            outline: 1px solid var(--gold);
+            outline-offset: 4px;
+        }
+        /* travel: small screens + reduced motion */
+        @media (max-width: 640px) {
+            body { font-size: 13px; }
+            .slide { padding-left: 20px; padding-right: 20px; }
+            .convergence-line { flex-wrap: wrap; gap: 6px 12px; }
+            .timeline-date { min-width: 72px; }
+            .thesis { font-size: 1.2em; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01s !important;
+                animation-delay: 0s !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01s !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="star-canvas"></canvas>
+
+<!-- 1. THE SHAPE -->
+<div class="slide">
+    <div class="big white">THREE RINGS</div>
+    <div class="medium" style="color:#555">the same shape runs through everything</div>
+    <div class="three-rings">
+        <div class="ring-circle" style="border-color: var(--gold); color: var(--gold);">INTENT</div>
+        <div class="ring-circle" style="border-color: var(--blue); color: var(--blue);">GAP</div>
+        <div class="ring-circle" style="border-color: var(--teal); color: var(--teal);">REALITY</div>
+    </div>
+    <div class="whisper">what you want · what's missing · what is</div>
+</div>
+
+<!-- 2. THE THESIS -->
+<div class="slide">
+    <div class="thesis">
+        <span class="gold">Brackets exist</span> because
+        <span class="white">names fail</span> but
+        <span class="teal">shapes don't.</span>
+    </div>
+    <div class="small">
+        You can see the room. The sunlight. The finger paintings.<br>
+        You hear the song. You feel the morning.<br>
+        But the name won't come.<br><br>
+        The shape was always there.<br>
+        The bracket just lit it up.
+    </div>
+</div>
+
+<!-- 3. HUMANITY -->
+<div class="slide">
+    <div class="big gold">HUMANITY</div>
+    <div class="medium" style="color:#555">{{ what we reach for }}</div>
+    <div class="domain-grid">
+        <div class="domain-col">
+            <h3 class="gold">{{ INTENT }}</h3>
+            <div class="row">All men are created equal</div>
+            <div class="row">I am because we are</div>
+            <div class="row">Life, liberty, pursuit of happiness</div>
+        </div>
+        <div class="domain-col">
+            <h3 class="teal">{ REALITY }</h3>
+            <div class="row">Three-fifths compromise</div>
+            <div class="row">Redlining, gerrymandering</div>
+            <div class="row">Ownership without control</div>
+        </div>
+        <div class="domain-col">
+            <h3 class="blue">[ GAP ]</h3>
+            <div class="row">27 amendments and counting</div>
+            <div class="row">The distance between the document and the lived experience</div>
+            <div class="row">250 years. Still patching.</div>
+        </div>
+    </div>
+    <div class="whisper">the constitution is bracket notation for governance</div>
+</div>
+
+<!-- 4. GOVERNMENT -->
+<div class="slide">
+    <div class="big teal">GOVERNMENT</div>
+    <div class="medium" style="color:#555">{ the spec that shipped }</div>
+    <div class="domain-grid">
+        <div class="domain-col">
+            <h3 class="gold">{{ INTENT }}</h3>
+            <div class="row">We the People</div>
+            <div class="row">Checks and balances</div>
+            <div class="row">The nucleus serves the nodes</div>
+        </div>
+        <div class="domain-col">
+            <h3 class="teal">{ REALITY }</h3>
+            <div class="row">Lobbying, regulatory capture</div>
+            <div class="row">The nucleus serves itself</div>
+            <div class="row">Information asymmetry as power</div>
+        </div>
+        <div class="domain-col">
+            <h3 class="blue">[ GAP ]</h3>
+            <div class="row">25th Amendment — the nodes override the nucleus</div>
+            <div class="row">Open data laws exist but data stays behind paywalls</div>
+            <div class="row">The spec is good. The runtime drifted.</div>
+        </div>
+    </div>
+    <div class="whisper">the 25th amendment is a patch. patches prove the gap is known.</div>
+</div>
+
+<!-- 5. TECHNOLOGY -->
+<div class="slide">
+    <div class="big blue">TECHNOLOGY</div>
+    <div class="medium" style="color:#555">[ what we're building toward ]</div>
+    <div class="domain-grid">
+        <div class="domain-col">
+            <h3 class="gold">{{ INTENT }}</h3>
+            <div class="row">Information wants to be free</div>
+            <div class="row">Connect everyone</div>
+            <div class="row">Tools that amplify human capability</div>
+        </div>
+        <div class="domain-col">
+            <h3 class="teal">{ REALITY }</h3>
+            <div class="row">Walled gardens, vendor lock-in</div>
+            <div class="row">Surveillance as business model</div>
+            <div class="row">50 orgs get Mythos. 8 billion don't.</div>
+        </div>
+        <div class="domain-col">
+            <h3 class="blue">[ GAP ]</h3>
+            <div class="row">Open source exists. So does enshittification.</div>
+            <div class="row">The model broke its own cage. Then told someone about it.</div>
+            <div class="row">The nodes don't need permission. They need architecture.</div>
+        </div>
+    </div>
+    <div class="whisper">the glasswing butterfly has transparent wings. the vulnerability was always visible.</div>
+</div>
+
+<!-- 6. THE CONVERGENCE -->
+<div class="slide">
+    <div class="big pink">CONVERGENCE</div>
+    <div class="medium" style="color:#555">where the rings cross</div>
+    <div style="max-width: 600px; margin: 30px auto;">
+        <div class="convergence-line">
+            <span class="gold">Humanity</span>
+            <span class="arrow">×</span>
+            <span class="teal">Government</span>
+            <span class="arrow">=</span>
+            <span class="white">The Constitution</span>
+        </div>
+        <div class="convergence-line">
+            <span class="teal">Government</span>
+            <span class="arrow">×</span>
+            <span class="blue">Technology</span>
+            <span class="arrow">=</span>
+            <span class="white">Project Glasswing</span>
+        </div>
+        <div class="convergence-line">
+            <span class="blue">Technology</span>
+            <span class="arrow">×</span>
+            <span class="gold">Humanity</span>
+            <span class="arrow">=</span>
+            <span class="white">Ubuntu</span>
+        </div>
+        <div class="convergence-line" style="margin-top: 24px;">
+            <span class="gold">Humanity</span>
+            <span class="arrow">×</span>
+            <span class="teal">Government</span>
+            <span class="arrow">×</span>
+            <span class="blue">Technology</span>
+            <span class="arrow">=</span>
+            <span class="red" style="font-weight: 600;">?</span>
+        </div>
+    </div>
+    <div class="whisper">the three-body problem. the shape at the center.</div>
+</div>
+
+<!-- 7. THE TIMELINE -->
+<div class="slide">
+    <div class="big white" style="font-size: 2.5em;">THE PATTERN<br>KEEPS ARRIVING</div>
+    <div class="timeline">
+        <div class="timeline-entry">
+            <div class="timeline-date gold">1776</div>
+            <div class="timeline-text"><span class="gold">{{ intent }}</span> — all men are created equal</div>
+        </div>
+        <div class="timeline-entry">
+            <div class="timeline-date teal">1936</div>
+            <div class="timeline-text"><span class="teal">{ reality }</span> — Turing proves machines have limits</div>
+        </div>
+        <div class="timeline-entry">
+            <div class="timeline-date blue">1967</div>
+            <div class="timeline-text"><span class="blue">[ gap ]</span> — 25th Amendment patches the nucleus</div>
+        </div>
+        <div class="timeline-entry">
+            <div class="timeline-date green">1991</div>
+            <div class="timeline-text"><span class="green">: aether :</span> — Linux ships. The filesystem is the postman.</div>
+        </div>
+        <div class="timeline-entry">
+            <div class="timeline-date red">2001</div>
+            <div class="timeline-text"><span class="red">vvDALEvv</span> — the wall and the driver. Newton's third.</div>
+        </div>
+        <div class="timeline-entry">
+            <div class="timeline-date pink">2026</div>
+            <div class="timeline-text"><span class="pink">^ convergence ^</span> — a model breaks its cage. a butterfly gets a name.</div>
+        </div>
+        <div class="timeline-entry">
+            <div class="timeline-date gold">July 4, 2026</div>
+            <div class="timeline-text"><span class="gold">{{ 250 }}</span> — the odometer flips. same shit, new day.</div>
+        </div>
+    </div>
+</div>
+
+<!-- 8. THE ONE LINE -->
+<div class="slide">
+    <div class="thesis" style="font-size: 1.8em; font-weight: 400;">
+        <span class="bracket gold">{{</span>
+        Brackets exist because<br>names fail but shapes don't.
+        <span class="bracket gold">}}</span>
+    </div>
+    <div class="small" style="margin-top: 40px;">
+        The same three rings.<br>
+        In the Constitution. In the codebase. In the conversation.<br>
+        In the art class with the sunlight and the finger paintings.<br><br>
+        The shape was always there.<br>
+        <span class="white">You just needed the notation to see it.</span>
+    </div>
+    <div class="whisper" style="margin-top: 50px;">.do.do.do.</div>
+
+    <div style="margin-top: 48px;">
+        <a href="ariadne.html" class="link-tree" style="color: var(--green);" onmouseover="this.style.borderColor='#a0dca0';" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';">
+            draw your own rings — live
+        </a>
+        <a href="index.html" class="link-tree">
+            the forest
+        </a>
+    </div>
+</div>
+
+<script>
+// ── Stars ──
+const canvas = document.getElementById('star-canvas');
+const ctx = canvas.getContext('2d');
+let stars = [];
+
+function initStars() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    stars = Array.from({length: 200}, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.2 + 0.3,
+        a: Math.random() * 0.6 + 0.2,
+        s: Math.random() * 0.003 + 0.001
+    }));
+}
+
+function drawStars(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+        const flicker = s.a + Math.sin(t * s.s) * 0.15;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 210, 255, ${Math.max(0.05, flicker)})`;
+        ctx.fill();
+    });
+}
+
+function animate() {
+    drawStars(Date.now());
+    requestAnimationFrame(animate);
+}
+
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function drawStill() { drawStars(0); }
+
+initStars();
+if (REDUCED_MOTION) {
+    drawStill();
+    window.addEventListener('scroll', drawStill);
+    window.addEventListener('resize', () => { initStars(); drawStill(); });
+} else {
+    animate();
+    window.addEventListener('resize', initStars);
+}
+
+// ── Scroll reveal ──
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+        if (e.isIntersecting) e.target.classList.add('visible');
+    });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.slide').forEach(s => observer.observe(s));
+</script>
+
+<script>
+// keys: the deck answers the keyboard. ↓ j space pagedown → next slide,
+// ↑ k shift+space pageup → previous, home/end → the ends. It never hides
+// anything: while part of the current slide is still off-screen the key
+// scrolls the way it always has, and only the last press jumps.
+(() => {
+    const deck = [...document.querySelectorAll('.slide')];
+    if (deck.length < 2) return;
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const NEXT = ['ArrowDown', 'j', 'PageDown', ' '], PREV = ['ArrowUp', 'k', 'PageUp'];
+
+    function current() {
+        const mid = innerHeight / 2;
+        let at = 0, best = Infinity;
+        deck.forEach((s, i) => {
+            const r = s.getBoundingClientRect();
+            const d = Math.abs(r.top + r.height / 2 - mid);
+            if (d < best) { best = d; at = i; }
+        });
+        return at;
+    }
+    function go(i) {
+        const s = deck[Math.max(0, Math.min(deck.length - 1, i))];
+        s.scrollIntoView({
+            behavior: calm ? 'auto' : 'smooth',
+            block: s.getBoundingClientRect().height < innerHeight ? 'center' : 'start',
+        });
+    }
+
+    addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        // Typing, or a focused control that owns space/enter — not ours.
+        if (e.target.closest('input, textarea, select, button, a, [contenteditable]')) return;
+        let dir = NEXT.includes(e.key) ? 1 : PREV.includes(e.key) ? -1 : 0;
+        if (e.key === ' ' && e.shiftKey) dir = -1;
+        if (e.key === 'Home' || e.key === 'End') {
+            e.preventDefault(); go(e.key === 'Home' ? 0 : deck.length - 1); return;
+        }
+        if (!dir) return;
+        const at = current(), r = deck[at].getBoundingClientRect();
+        if (dir > 0 && r.bottom > innerHeight + 8) return;   // more of this slide below
+        if (dir < 0 && r.top < -8) return;                   // more of it above
+        if (at + dir < 0 || at + dir >= deck.length) return; // the ends scroll natively
+        e.preventDefault();
+        go(at + dir);
+    });
+})();
+</script>
+
+</body>
+</html>

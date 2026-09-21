@@ -9,6 +9,9 @@
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:url" content="https://servingkaos.com/">
+    <link rel="canonical" href="https://servingkaos.com/">
+    <meta name="theme-color" content="#080816">
     <meta name="description" content="I am because we are. Four trees, one root system.">
     <meta property="og:title" content="Ubuntu Trees">
     <meta property="og:description" content="The forest was never separate trees. Same three rings. Every thread connected.">
@@ -160,6 +163,7 @@
         .tree-money::before { background: var(--teal); }
         .tree-money .tree-dot { background: var(--teal); color: var(--teal); }
         .tree-money .tree-name { color: var(--teal); }
+        .tree-money .tree-ring-label { color: var(--teal); }
         .tree-money .tree-tagline { color: #4a7a76; }
         .tree-money:hover { border-color: rgba(78, 205, 196, 0.2); box-shadow: 0 0 40px rgba(78, 205, 196, 0.05); }
 
@@ -168,6 +172,7 @@
         .tree-honey::before { background: var(--gold); }
         .tree-honey .tree-dot { background: var(--gold); color: var(--gold); }
         .tree-honey .tree-name { color: var(--gold); }
+        .tree-honey .tree-ring-label { color: var(--gold); }
         .tree-honey .tree-tagline { color: #7a6a20; }
         .tree-honey:hover { border-color: rgba(255, 215, 0, 0.2); box-shadow: 0 0 40px rgba(255, 215, 0, 0.05); }
 
@@ -176,6 +181,7 @@
         .tree-spirit::before { background: var(--pink); }
         .tree-spirit .tree-dot { background: var(--pink); color: var(--pink); }
         .tree-spirit .tree-name { color: var(--pink); }
+        .tree-spirit .tree-ring-label { color: var(--pink); }
         .tree-spirit .tree-tagline { color: #7a4a77; }
         .tree-spirit:hover { border-color: rgba(224, 123, 218, 0.2); box-shadow: 0 0 40px rgba(224, 123, 218, 0.05); }
 
@@ -184,6 +190,7 @@
         .tree-world::before { background: var(--green); }
         .tree-world .tree-dot { background: var(--green); color: var(--green); }
         .tree-world .tree-name { color: var(--green); }
+        .tree-world .tree-ring-label { color: var(--green); }
         .tree-world .tree-tagline { color: #4a7a4a; }
         .tree-world:hover { border-color: rgba(160, 220, 160, 0.2); box-shadow: 0 0 40px rgba(160, 220, 160, 0.05); }
 
@@ -260,6 +267,11 @@
         .k-gap { color: var(--blue); }
     </style>
     <style>
+        /* tabbing through gets the same gold the mouse does */
+        a:focus-visible, button:focus-visible {
+            outline: 1px solid var(--gold);
+            outline-offset: 4px;
+        }
         /* travel: small screens + reduced motion */
         @media (max-width: 640px) {
             body { font-size: 13px; }
@@ -324,8 +336,11 @@
             RAISE HELL PRAISE DALE
         </a>
         <br>
-        <a href="why.html" style="display: inline-block; margin-top: 8px; padding: 10px 24px; border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; color: #666; text-decoration: none; font-size: 0.85em; letter-spacing: 0.1em; transition: all 0.3s ease;" onmouseover="this.style.color='#4ecdc4'; this.style.borderColor='#4ecdc4';" onmouseout="this.style.color='#666'; this.style.borderColor='rgba(255,255,255,0.06)';">
+        <a href="why.html" style="display: inline-block; margin-top: 8px; margin-right: 6px; padding: 10px 24px; border: 1px solid rgba(255,255,255,0.06); border-radius: 6px; color: #666; text-decoration: none; font-size: 0.85em; letter-spacing: 0.1em; transition: all 0.3s ease;" onmouseover="this.style.color='#4ecdc4'; this.style.borderColor='#4ecdc4';" onmouseout="this.style.color='#666'; this.style.borderColor='rgba(255,255,255,0.06)';">
             but why though?
+        </a>
+        <a href="rings.html" style="display: inline-block; margin-top: 8px; padding: 10px 24px; border: 1px solid rgba(255,215,0,0.12); border-radius: 6px; color: var(--gold); text-decoration: none; font-size: 0.85em; letter-spacing: 0.1em; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#ffd700'; this.style.boxShadow='0 0 20px rgba(255,215,0,0.1)';" onmouseout="this.style.borderColor='rgba(255,215,0,0.12)'; this.style.boxShadow='none';">
+            the same three rings
         </a>
         <br>
         <a href="ariadne.html" style="display: inline-block; margin-top: 8px; margin-right: 6px; padding: 10px 24px; border: 1px solid rgba(160,220,160,0.12); border-radius: 6px; color: var(--green); text-decoration: none; font-size: 0.85em; letter-spacing: 0.1em; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#a0dca0'; this.style.boxShadow='0 0 20px rgba(160,220,160,0.1)';" onmouseout="this.style.borderColor='rgba(160,220,160,0.12)'; this.style.boxShadow='none';">

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 — a gap</title>
+    <!-- Pages serves this at whatever path missed, so every URL here is
+         root-absolute — a relative href would break one directory down. -->
+    <link rel="icon" href="/favicon.svg">
+    <meta property="og:image" content="https://servingkaos.com/og-card.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="theme-color" content="#080816">
+    <meta name="robots" content="noindex">
+    <meta name="description" content="Nothing at this address. The forest is at /.">
+    <meta property="og:title" content="404 — a gap">
+    <meta property="og:description" content="Nothing at this address. The forest is at /.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080816;
+            --gold: #ffd700;
+            --teal: #4ecdc4;
+            --blue: #5b8def;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            background: var(--bg);
+            color: #888;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 40px;
+            text-align: center;
+            opacity: 0;
+            animation: fadeUp 1.2s ease forwards;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .code {
+            font-size: 5em;
+            font-weight: 100;
+            letter-spacing: 0.3em;
+            margin-right: -0.3em; /* trailing letter-space would pull it off center */
+            color: var(--blue);
+        }
+
+        .rings {
+            margin: 36px 0;
+            font-size: 1.05em;
+            line-height: 2.3;
+        }
+        .intent { color: var(--gold); }
+        .reality { color: var(--teal); }
+        .gap { color: var(--blue); }
+
+        #path { word-break: break-all; }
+
+        .link-tree {
+            display: inline-block;
+            margin: 12px 8px;
+            padding: 12px 28px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        .link-tree:hover {
+            color: var(--gold);
+            border-color: var(--gold);
+        }
+
+        .whisper {
+            font-size: 0.75em;
+            color: #555;
+            margin-top: 36px;
+            letter-spacing: 0.15em;
+        }
+    </style>
+    <style>
+        /* tabbing through gets the same gold the mouse does */
+        a:focus-visible, button:focus-visible {
+            outline: 1px solid var(--gold);
+            outline-offset: 4px;
+        }
+        /* travel: small screens + reduced motion */
+        @media (max-width: 640px) {
+            body { font-size: 13px; }
+            .container { padding: 48px 20px; }
+            .code { font-size: 3.6em; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01s !important;
+                animation-delay: 0s !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01s !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="star-canvas"></canvas>
+
+<div class="container">
+    <div class="code">404</div>
+
+    <div class="rings">
+        <div class="intent">{{ you wanted <span id="path">this page</span> }}</div>
+        <div class="reality">{ there's no such page here }</div>
+        <div class="gap">[ the forest is at / ]</div>
+    </div>
+
+    <div>
+        <a href="/" class="link-tree">the forest</a>
+    </div>
+
+    <div class="whisper">a gap, named. that's half the work.</div>
+</div>
+
+<script>
+// Name the thing that was reached for. textContent, never innerHTML —
+// the path is whatever a stranger typed.
+let wanted = location.pathname;
+try { wanted = decodeURIComponent(wanted); } catch (e) { /* malformed escape — show it raw */ }
+document.getElementById('path').textContent = wanted;
+
+// ── Stars ──
+const canvas = document.getElementById('star-canvas');
+const ctx = canvas.getContext('2d');
+let stars = [];
+
+function initStars() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    stars = Array.from({length: 140}, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.2 + 0.3,
+        a: Math.random() * 0.5 + 0.15,
+        s: Math.random() * 0.003 + 0.001
+    }));
+}
+
+function drawStars(t) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+        const flicker = s.a + Math.sin(t * s.s) * 0.15;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 210, 255, ${Math.max(0.05, flicker)})`;
+        ctx.fill();
+    });
+}
+
+function animate() {
+    drawStars(Date.now());
+    requestAnimationFrame(animate);
+}
+
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+initStars();
+if (REDUCED_MOTION) {
+    drawStars(0);
+    window.addEventListener('resize', () => { initStars(); drawStars(0); });
+} else {
+    animate();
+    window.addEventListener('resize', initStars);
+}
+</script>
+
+</body>
+</html>

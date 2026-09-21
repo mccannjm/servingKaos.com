@@ -26,8 +26,27 @@ const MIME = {
     '.txt': 'text/plain; charset=utf-8',
 };
 
+// Pages answers every miss with /404.html and a 404 status. So do we.
+function notFound(res, urlPath) {
+    fs.readFile(path.join(ROOT, '404.html'), (err, page) => {
+        if (err) {
+            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end(`404 — no ${urlPath} here.\nthe forest is at /\n`);
+            return;
+        }
+        res.writeHead(404, { 'Content-Type': MIME['.html'] });
+        res.end(page);
+    });
+}
+
 const server = http.createServer((req, res) => {
-    let urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    let urlPath;
+    try {
+        urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    } catch (e) {
+        // A malformed escape (/%E0%A4) throws — that's a miss, not a crash.
+        notFound(res, req.url); return;
+    }
     if (urlPath.endsWith('/')) urlPath += 'index.html';
 
     // Resolve inside ROOT only — no traversal.
@@ -37,11 +56,7 @@ const server = http.createServer((req, res) => {
     }
 
     fs.readFile(filePath, (err, data) => {
-        if (err) {
-            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-            res.end(`404 — no ${urlPath} here.\nthe forest is at /\n`);
-            return;
-        }
+        if (err) { notFound(res, urlPath); return; }
         res.writeHead(200, { 'Content-Type': MIME[path.extname(filePath)] || 'application/octet-stream' });
         res.end(data);
     });
