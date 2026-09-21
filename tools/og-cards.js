@@ -23,17 +23,21 @@ const path = require('path');
 const SITE = path.join(__dirname, '..');
 const OUT = path.join(SITE, 'og');
 
+// Drawn left to right in this order. A picture puts the gap BETWEEN what
+// you want and what is — that's what a gap is. (The sentence on the footer,
+// *want* {is} [gap], keeps its own order: a sentence lands on the gap.)
 const RINGS = {
     intent:  '#ffd700',
-    reality: '#4ecdc4',
     gap:     '#5b8def',
+    reality: '#4ecdc4',
     cross:   '#e07bda',
     pin:     '#ff6b6b',
     aether:  '#a0dca0',
 };
 
 // page → the ring(s) it lights, and the ink its title is set in.
-// index.html and 404.html keep the site-wide og-card.png.
+// index.html and 404.html share the site-wide og-card.png, printed by
+// siteCard() below — its source was never committed, so now it has one.
 const PAGES = {
     'slideshow.html':  { lit: ['reality'] },                 // the proof
     'honeytree.html':  { lit: ['intent'] },                  // the feeling
@@ -129,6 +133,50 @@ function card(slug, title, desc, { lit, ink }) {
     }</script></body></html>`;
 }
 
+// The front door's card: the three rings alone, large, the gap between.
+function siteCard() {
+    const three = ['intent', 'gap', 'reality'].map(r =>
+        `<i style="background:${RINGS[r]}; box-shadow:0 0 90px 34px ${RINGS[r]}30, 0 0 22px 3px ${RINGS[r]}80;"></i>`
+    ).join('<b></b>');
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { width:1200px; height:630px; background:#080816; overflow:hidden;
+               font-family:'SF Mono','Menlo','Consolas',monospace; position:relative; }
+        canvas { position:absolute; inset:0; }
+        .card { position:absolute; inset:0; display:flex; flex-direction:column;
+                align-items:center; justify-content:center; text-align:center; }
+        .dots { display:flex; align-items:center; margin-bottom:64px; }
+        .dots i { width:34px; height:34px; border-radius:50%; display:block; }
+        .dots b { width:72px; height:1px; background:rgba(255,255,255,0.10); display:block; }
+        h1 { font-weight:200; font-size:50px; letter-spacing:0.86em; margin-right:-0.86em;
+             color:#cccccc; white-space:nowrap; }
+        p { margin-top:30px; font-size:23px; font-style:italic; letter-spacing:0.04em; color:#6a6a78; }
+        .kernel { margin-top:44px; font-size:20px; letter-spacing:0.08em; }
+        .kernel span { margin:0 17px; }
+    </style></head><body>
+    <canvas id="sky" width="1200" height="630"></canvas>
+    <div class="card">
+        <div class="dots">${three}</div>
+        <h1 id="t">SERVINGKAOS</h1>
+        <p>see the shape of your thinking</p>
+        <div class="kernel"><span style="color:#ffd700">*want*</span><span style="color:#4ecdc4">{is}</span><span style="color:#5b8def">[gap]</span></div>
+    </div>
+    <script>{
+        let seed = [...'servingkaos'].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 2654435761) >>> 0, 0x9e3779b9);
+        const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+            let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+            t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+            return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+        const ctx = document.getElementById('sky').getContext('2d');
+        for (let i = 0; i < 260; i++) {
+            ctx.beginPath();
+            ctx.arc(rnd() * 1200, rnd() * 630, rnd() * 1.3 + 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(200,210,255,' + (rnd() * 0.32 + 0.05) + ')';
+            ctx.fill();
+        }
+    }</script></body></html>`;
+}
+
 async function main() {
     fs.mkdirSync(OUT, { recursive: true });
     const browser = await chromium.launch({ executablePath: findChrome() });
@@ -151,10 +199,18 @@ async function main() {
             await page.screenshot({ path: path.join(OUT, `${slug}.png`) });
             console.log(`  og/${slug}.png — ${title}`);
         }
+        await page.setContent(siteCard());
+        const siteFits = await page.$eval('#t', t => t.scrollWidth <= 1100);
+        if (errors.length || !siteFits) {
+            console.error(`og-card.png: card is wrong — ${errors.join(' | ') || 'title overflows'}`);
+            process.exit(1);
+        }
+        await page.screenshot({ path: path.join(SITE, 'og-card.png') });
+        console.log('  og-card.png — the front door');
     } finally {
         await browser.close();
     }
-    console.log(`\n${Object.keys(PAGES).length} cards. point each page's og:image at its own.`);
+    console.log(`\n${Object.keys(PAGES).length} cards and the front door. point each page's og:image at its own.`);
 }
 
 main().catch(e => { console.error('FATAL', e); process.exit(1); });

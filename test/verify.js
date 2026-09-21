@@ -135,6 +135,10 @@ async function main() {
             leaked.push(`${f}: ${m[0].slice(1, 50).trim()}…`);
         }
     }
+    // {{ }} is this site's notation — and Liquid's. See .nojekyll for the rest.
+    check(fs.existsSync(path.join(SITE, '.nojekyll')), 'Pages is told not to run Jekyll over the {{ brackets }}');
+    const fronted = files.filter(f => source[f].startsWith('---'));
+    check(fronted.length === 0, 'no page opens with front matter', fronted.join(', '));
     check(dupIds.length === 0, 'no duplicate ids', dupIds.join(' | '));
     check(leaked.length === 0, 'no torn tags leaking attributes into the text', leaked.join(' | '));
 
@@ -202,6 +206,21 @@ async function main() {
             check(okErr && overflow <= 1, f, okErr ? `${overflow}px sideways overflow` : pageErrors.join(' | '));
         }
         await mobilePage.close();
+
+        // ── 2b′. No script: the decks reveal slides with JS, so without it
+        //        they were a black screen. The words must not wait for a script ──
+        console.log('no script:');
+        const bareContext = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1280, height: 800 } });
+        const barePage = await bareContext.newPage();
+        const dark = [];
+        for (const f of files.filter(f => source[f].includes('class="slide'))) {
+            await barePage.goto(`${base}/${f}`);
+            const unseen = await barePage.evaluate(() => [...document.querySelectorAll('.slide')]
+                .filter(s => getComputedStyle(s).opacity !== '1').length);
+            if (unseen) dark.push(`${f}: ${unseen} slides hidden`);
+        }
+        check(dark.length === 0, 'every deck shows its words with JavaScript off', dark.join(' | '));
+        await bareContext.close();
 
         // ── 2c. Reduced motion: pages must still arrive at their
         //        visible end-state with animation neutralized ──

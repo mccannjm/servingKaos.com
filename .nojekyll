@@ -1,0 +1,7 @@
+This file's existence tells GitHub Pages: do not run Jekyll. Its contents are ignored.
+
+Why it matters here more than most places: this site's whole notation is {{ double
+curlies }} — which is also Liquid, Jekyll's template syntax. Jekyll only runs Liquid
+on files that start with YAML front matter, so today nothing is eaten. But that is one
+stray "---" block away from a page whose {{ intent }} renders as empty space, with no
+error, only on the live site. The gate checks this file is here.
