@@ -492,6 +492,48 @@ async function main() {
         check(thesis.includes('{{All men are created equal}}') && thesis.includes("shapes don't"),
             'rings.html hands the instrument its own argument');
         check(verdict === 'clarity' && errorsInThesis === 0, 'and the thesis type-checks: clarity, zeusc clean', `${verdict}, ${errorsInThesis} problems`);
+        // Kansas: "what happens when systems hide the gap on purpose." Hand the
+        // page's two halves to the type checker and it proves the page's point —
+        // what they SAY scores perfect, because it hides every gap.
+        await page.goto(`${base}/kansas.html`);
+        await page.waitForTimeout(400);
+        const kansas = await page.evaluate(() => {
+            const lines = sel => [...document.querySelectorAll(sel)].map(d =>
+                [...d.querySelectorAll('span')].map(s => s.textContent.trim()).filter(Boolean).join(' ')).join('\n');
+            return { says: lines('.broken.says'), means: lines('.broken.means') };
+        });
+        await page.evaluate(() => document.querySelector('a[href^="ariadne.html#seed="]').click());
+        await page.waitForTimeout(900);
+        check(await page.$eval('#input', el => el.value) === kansas.says,
+            'kansas hands over exactly what they say — word for word, straight off the page');
+        const smug = await page.evaluate(() => ({ temper: lastReport.temper, score: Math.round(lastReport.score * 100),
+            gaps: currentNodes.filter(n => n.ring === 'gap').length }));
+        check(smug.temper === 'clarity' && smug.score === 100 && smug.gaps === 0,
+            'what they say scores a perfect 100 — it hides every gap', JSON.stringify(smug));
+        const honest = await page.evaluate(t => { const r = checkConvergence(parseWalk(t).nodes);
+            return { temper: r.temper, pressure: r.diagnostics.some(d => /gap pressure rising/.test(d.message)) }; }, kansas.means);
+        check(honest.temper === 'friction' && honest.pressure,
+            'what they mean scores friction, gap pressure rising — honesty costs points', JSON.stringify(honest));
+        // The button says "name the gap". Do it, with the page's own first gap.
+        await page.$eval('#input', el => { el.focus(); el.setSelectionRange(el.value.length, el.value.length); });
+        await page.keyboard.type('\n[47 minutes is how much your time is worth to us]');
+        await page.waitForTimeout(500);
+        const named = await page.evaluate(() => currentNodes.filter(n => n.ring === 'gap').length);
+        check(named === 1, 'name the gap, and a blue star appears', `${named} gap nodes`);
+
+        // Every seed a page hands over must be that page's own words. A seed
+        // that drifts from its page is a quote that was never said.
+        const misquotes = [];
+        for (const f of files) {
+            const m = source[f].match(/href="ariadne\.html#seed=([^"]+)"/);
+            if (!m) continue;
+            const words = source[f].replace(/<(script|style)[\s\S]*?<\/\1>/g, '').replace(/<!--[\s\S]*?-->/g, '')
+                .replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#39;|&rsquo;/g, "'").replace(/\s+/g, ' ');
+            for (const frag of decodeURIComponent(m[1]).split(/[{}\[\]^:*\n]+/).map(x => x.trim()).filter(Boolean)) {
+                if (!words.includes(frag)) misquotes.push(`${f}: "${frag}"`);
+            }
+        }
+        check(misquotes.length === 0, "every seed link carries only its own page's words", misquotes.join(' | '));
         check(pageErrors.length === 0, 'no page errors through the seed-link suite', pageErrors.join(' | '));
 
         // ── 3c. The garage and the volume ──

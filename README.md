@@ -70,9 +70,20 @@ server, no account, no tracking" still holds. A linked seed lands as plain text
 (the mirror only ever writes `textContent`; the gate feeds it a hostile one) and
 enters Nova as external arrivals, the same as a paste.
 
-Any page can hand the instrument its own words this way. `rings.html` does: its
-closing button opens Ariadne on the page's own argument, every line verbatim,
-and zeusc scores it *clarity, 3:3 — "what's wanted matches what IS."*
+Any page can hand the instrument its own words this way — and most of this site
+is already written in the notation, slide by slide. Two pages do so far:
+
+- `rings.html` opens Ariadne on its own argument. zeusc scores it *clarity, 3:3 —
+  "what's wanted matches what IS."* The thesis page type-checks.
+- `kansas.html` — "what happens when systems hide the gap on purpose" — hands over
+  its five *what they say* lines. They score **clarity, 100%**, because not one
+  admits a gap; the decoded *what they mean* halves score **friction, "gap
+  pressure rising."** The type checker is fooled by exactly what the page is
+  about, so the button means what it says: *name the gap — live.*
+
+A seed must be its page's own words. The gate decodes every seed link and fails
+on any fragment that isn't on the page — a seed that drifts is a quote that was
+never said.
 
 ## Share cards
 
