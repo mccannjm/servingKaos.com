@@ -282,6 +282,31 @@ async function main() {
         check(rtPills.length === 6, 'the seed survives the paste — all six rings return', rtPills.join(', '));
         check(pageErrors.length === 0, 'no page errors through the kernel suite', pageErrors.join(' | '));
 
+        // ── 3a″. Check 7 — gap suppression (the Kansas check): its edges ──
+        console.log('check 7:');
+        const zc = text => page.evaluate(t => { const r = checkConvergence(parseWalk(t).nodes);
+            return { temper: r.temper, score: Math.round(r.score * 100),
+                kansas: r.diagnostics.some(d => /warnings turned off/.test(d.message)),
+                warnings: r.diagnostics.filter(d => d.severity === 'warning').length }; }, text);
+        const five = await zc('*a* {b} *c* {d} *e*');
+        check(!five.kansas && five.warnings === 0, 'five claims with no gap is just someone getting started — no nagging', JSON.stringify(five));
+        const six = await zc('*a* {b} *c* {d} *e* {f}');
+        check(six.kansas && six.temper === 'friction' && six.score === 88, 'the sixth claim with still no question trips it', JSON.stringify(six));
+        const sixAsked = await zc('*a* {b} *c* {d} *e* {f} [g]');
+        check(!sixAsked.kansas && sixAsked.temper === 'clarity' && sixAsked.score > six.score,
+            'one named gap clears it, and scores higher than none', JSON.stringify(sixAsked));
+        const aside = await zc('*a* {b} *c* {d} *e* {f} (not sure about d)');
+        check(!aside.kansas, 'an aside counts — ( ) is the gap ring too', JSON.stringify(aside));
+        const oneSided = await zc('*a* *b* *c* *d* *e* *f*');
+        check(!oneSided.kansas && oneSided.warnings > 0, 'all intent, no reality is already caught by checks 1 and 5 — this one stays out of it', JSON.stringify(oneSided));
+        // Same ring, opposite problem, opposite move — pin both directions.
+        await page.fill('#input', '*a* {b} [c] [d] [e] [f] [g]');
+        await page.waitForTimeout(400);
+        const tooMany = await page.locator('.suggest-chip').first().textContent().catch(() => '(no chip)');
+        check(tooMany.includes('answer one') && tooMany.includes('{'), 'too many gaps still offers "answer one { }"', tooMany);
+        const musing = await zc('^a^ :b: ^c^ :d: ^e^ :f: ^g^');
+        check(!musing.kansas, 'no claims at all, nothing to suppress', JSON.stringify(musing));
+
         // ── 3a′. The classifier closes what it opens, and the pills count nodes ──
         console.log('rings, counted:');
         // }} is a two-character closer. classify() only ever popped closers of
@@ -506,20 +531,43 @@ async function main() {
         await page.waitForTimeout(900);
         check(await page.$eval('#input', el => el.value) === kansas.says,
             'kansas hands over exactly what they say — word for word, straight off the page');
-        const smug = await page.evaluate(() => ({ temper: lastReport.temper, score: Math.round(lastReport.score * 100),
-            gaps: currentNodes.filter(n => n.ring === 'gap').length }));
-        check(smug.temper === 'clarity' && smug.score === 100 && smug.gaps === 0,
-            'what they say scores a perfect 100 — it hides every gap', JSON.stringify(smug));
+        // Check 7, gap suppression. zeusc used to score these five lines a
+        // perfect 100 — the gap factor only ever fell as gaps grew, so hiding
+        // every gap was, by construction, the best possible score. This page is
+        // how that was noticed.
+        const read = () => page.evaluate(() => ({ temper: lastReport.temper, score: Math.round(lastReport.score * 100),
+            gaps: currentNodes.filter(n => n.ring === 'gap').length,
+            kansas: lastReport.diagnostics.filter(d => /warnings turned off/.test(d.message)).map(d => `${d.severity}/${d.ring}`).join() }));
+        const smug = await read();
+        check(smug.gaps === 0 && smug.kansas === 'warning/gap' && smug.temper === 'friction' && smug.score === 88,
+            'what they say no longer passes — ten claims, no gap: a clean build with the warnings turned off', JSON.stringify(smug));
         const honest = await page.evaluate(t => { const r = checkConvergence(parseWalk(t).nodes);
             return { temper: r.temper, pressure: r.diagnostics.some(d => /gap pressure rising/.test(d.message)) }; }, kansas.means);
         check(honest.temper === 'friction' && honest.pressure,
-            'what they mean scores friction, gap pressure rising — honesty costs points', JSON.stringify(honest));
-        // The button says "name the gap". Do it, with the page's own first gap.
+            'what they mean is friction too, from the other side — the gaps named, and piling up', JSON.stringify(honest));
+        // The warning ends "Name one." — so zim⁰ must offer exactly that. It
+        // turns a diagnostic into a move by ring, and until check 7 a gap-ring
+        // diagnostic only ever meant TOO MANY gaps: "answer one: { }". Offered
+        // here, that is precisely backwards.
+        const chip = await page.locator('.suggest-chip').first().textContent().catch(() => '(no chip)');
+        check(chip.includes('name one') && chip.includes('['), 'zim⁰ offers the move the warning asks for: name one [ ]', chip);
+        // The button says "name the gap". Do it — Tab takes the chip, then the
+        // page's own first gap goes inside the brackets it made.
         await page.$eval('#input', el => { el.focus(); el.setSelectionRange(el.value.length, el.value.length); });
-        await page.keyboard.type('\n[47 minutes is how much your time is worth to us]');
+        await page.keyboard.press('Enter');
+        await page.waitForTimeout(300);
+        await page.keyboard.press('Tab');
+        await page.waitForTimeout(200);
+        await page.keyboard.type('47 minutes is how much your time is worth to us');
         await page.waitForTimeout(500);
-        const named = await page.evaluate(() => currentNodes.filter(n => n.ring === 'gap').length);
-        check(named === 1, 'name the gap, and a blue star appears', `${named} gap nodes`);
+        const typed = await page.$eval('#input', el => el.value.split('\n').pop());
+        check(/^\[\s*47 minutes is how much your time is worth to us\s*\]$/.test(typed),
+            'Tab makes the brackets, the caret lands inside them', typed);
+        const named = await read();
+        check(named.gaps === 1 && named.kansas === '' && named.temper === 'clarity',
+            'name one gap and the warning lifts — friction becomes clarity', JSON.stringify(named));
+        check(named.score > smug.score,
+            'and honesty RAISES the score now — it used to cost points', `${smug.score} → ${named.score}`);
 
         // Every seed a page hands over must be that page's own words. A seed
         // that drifts from its page is a quote that was never said.

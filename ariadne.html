@@ -682,7 +682,9 @@ function openThreads(text) { return parseWalk(text).threads; }
 
 // ── ConvergenceChecker — the type checker. Six cognitive types;
 //    divergence is a type error. Check 3 (dead pins) needs the full
-//    edge graph and lives only in the native instrument. ──
+//    edge graph and lives only in the native instrument. Check 7
+//    (gap suppression) was born here, in September, and lives only
+//    in the browser until the native instrument takes it. ──
 function checkConvergence(nodes) {
     if (!nodes.length) return { diagnostics: [{ severity: 'note', ring: null, message: 'Empty tapestry — no types to check' }], score: 1.0, temper: 'rest' };
     const counts = {}; for (const n of nodes) counts[n.ring] = (counts[n.ring] || 0) + 1;
@@ -701,9 +703,28 @@ function checkConvergence(nodes) {
     else if (intent > 0 && reality > 0 && ir > 0.5)
         diags.push({ severity: 'note', ring: null, message: `Intent-Reality balance ${intent}:${reality} — types converge. What's wanted matches what IS.` });
 
+    // Check 7 — gap suppression. The Kansas check.
+    //
+    // The gap factor below only ever falls as gaps grow, so a tapestry with NO
+    // gaps took the best score there is. The math rewarded hiding them. Five
+    // lines of corporate speech off kansas.html — "We value you as a customer",
+    // "Please hold" — scored clarity, 100, "what's wanted matches what IS", while
+    // the honest decoding of those same lines scored friction. Naming a gap cost
+    // points. That page is about exactly this, and it took the page to notice.
+    //
+    // More than five claims, both rings present, and not one open question is
+    // either finished work or a clean build with the warnings turned off. zeusc
+    // can't tell which — so it says so, and hands the judgment back. The factor
+    // becomes 0.5: what the curve below gives at 25% gaps. Hiding every gap
+    // scores the same as leaving a quarter of the tapestry open. Below the floor
+    // it stays quiet; five claims with no question is just someone getting started.
     const gr = gap / total;
-    factors.push(Math.max(0, 1 - gr * 2));
-    if (gr > 0.5 && gap > 5)
+    const claims = intent + reality;
+    const suppressed = gap === 0 && intent > 0 && reality > 0 && claims > 5;
+    factors.push(suppressed ? 0.5 : Math.max(0, 1 - gr * 2));
+    if (suppressed)
+        diags.push({ severity: 'warning', ring: 'gap', code: 'suppressed', message: `No gaps across ${claims} claims — suspiciously resolved. Finished, or the gaps are hidden. Like a clean build with the warnings turned off. Name one.` });
+    else if (gr > 0.5 && gap > 5)
         diags.push({ severity: 'error', ring: 'gap', message: `Gap accumulation critical: ${gap}/${total} nodes are open threads — memory leak. Close some or they decay into noise.` });
     else if (gr > 0.3 && gap > 3)
         diags.push({ severity: 'warning', ring: 'gap', message: `${gap} open threads (${Math.round(gr * 100)}% of tapestry) — gap pressure rising. Like ${gap} TODOs in one file.` });
@@ -1508,7 +1529,14 @@ function computeSuggestions(text, threads) {
     // 2. The type checker speaks: the top zeusc diagnostic becomes a move.
     const diag = lastReport.diagnostics.find(d => d.severity !== 'note' && d.ring);
     if (diag) {
+        // A ring alone doesn't say which way it's wrong. Until check 7, a
+        // gap-ring diagnostic only ever meant too MANY gaps, so the move was
+        // "answer one". Suppression is the same ring and the opposite problem,
+        // and that move would have wrapped a visitor's one honest question in
+        // { } — an eleventh claim. The diagnostic names its kind; kind wins.
         const MOVE = {
+            suppressed: { type: 'square',  verb: 'name one' },
+        }[diag.code] || {
             intent:    { type: 'curly',    verb: 'ground one' },
             gap:       { type: 'curly',    verb: 'answer one' },
             reality:   { type: 'emphasis', verb: 'name a want' },

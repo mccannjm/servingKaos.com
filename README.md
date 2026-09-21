@@ -76,14 +76,33 @@ is already written in the notation, slide by slide. Two pages do so far:
 - `rings.html` opens Ariadne on its own argument. zeusc scores it *clarity, 3:3 —
   "what's wanted matches what IS."* The thesis page type-checks.
 - `kansas.html` — "what happens when systems hide the gap on purpose" — hands over
-  its five *what they say* lines. They score **clarity, 100%**, because not one
-  admits a gap; the decoded *what they mean* halves score **friction, "gap
-  pressure rising."** The type checker is fooled by exactly what the page is
-  about, so the button means what it says: *name the gap — live.*
+  its five *what they say* lines. zeusc used to score them **clarity, 100%**,
+  because not one admits a gap, while the honest *what they mean* halves scored
+  friction. The type checker was fooled by exactly what the page is about — see
+  check 7 below. Now the button means what it says: *name the gap — live.*
 
 A seed must be its page's own words. The gate decodes every seed link and fails
 on any fragment that isn't on the page — a seed that drifts is a quote that was
 never said.
+
+## zeusc check 7 — gap suppression (the Kansas check)
+
+The gap factor only ever fell as gaps grew, so a text with **no** gaps took the
+best score there is: the math rewarded hiding them, and naming a gap cost points.
+Kansas's corporate lines scored a perfect 100. Check 7 closes that:
+
+- **fires** on more than five intent+reality claims, both rings present, zero gaps
+  — below that it stays quiet; five claims and no question is someone getting started
+- **warning**, not error — it can't tell finished work from hidden gaps, so it says
+  so: *"Like a clean build with the warnings turned off. Name one."*
+- the gap factor becomes **0.5**, what the curve gives at 25% gaps: hiding every
+  gap scores the same as leaving a quarter of the tapestry open
+- zim⁰ offers the move it asks for, `name one: [ ]`. It keys on the diagnostic's
+  `code`, not its ring — "too many gaps" is the same ring and the opposite move
+
+Kansas's lines now read friction, 88; name one gap and they read clarity, 95.
+Honesty raises the score. Checks 1–6 are ported from `ConvergenceChecker.swift`;
+**check 7 exists only here** until the native instrument takes it.
 
 ## Share cards
 
