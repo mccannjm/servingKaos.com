@@ -303,6 +303,65 @@ async function main() {
         check(mixed === 'intent:{{a |reality:{b}|intent:}}|null: tail',
             '{ } closing inside {{ }} — each closer finds its own opener', mixed);
 
+        // Depth drives the mirror's bold. Segments merged on ring alone, so a
+        // nested bracket only went bold when its ring differed from its parent's:
+        // {real [gap]} yes, [thread (aside)] no — ( ) and [ ] are both gap.
+        const shape = text => page.evaluate(t =>
+            classify(t).map(s => `${s.ring}${s.depth}:${s.text}`).join('|'), text);
+        const sameRing = await shape('[thread (aside) continues]');
+        check(sameRing === 'gap1:[thread |gap2:(aside)|gap1: continues]',
+            'same-ring nesting keeps its depth — the aside is its own, deeper segment', sameRing);
+        const halves = await shape('{o {i} o}');
+        check(halves === 'reality1:{o |reality2:{i}|reality1: o}',
+            "a bracket's two halves agree how deep they are", halves);
+        await page.fill('#input', '[thread (aside) continues]');
+        await page.waitForTimeout(300);
+        const weights = await page.$$eval('#mirror span', els => els.filter(e => e.textContent.replace(/\u200b/g, '').trim())
+            .map(e => `${e.textContent}=${getComputedStyle(e).fontWeight}`).join('|'));
+        check(weights === '[thread =400|(aside)=600| continues]=400', 'and the mirror shows it: only the aside is bold', weights);
+
+        // The mirror lies under a transparent-ink textarea. If bold were any
+        // wider than regular, the caret would slide off the visible text on
+        // exactly the lines nesting makes bold.
+        const boldCost = await page.evaluate(() => {
+            const m = document.getElementById('mirror');
+            const wide = w => { const el = document.createElement('span');
+                el.style.fontWeight = w; el.style.whiteSpace = 'pre';
+                el.textContent = '[thread (aside) continues] mmmmWWWWiiii 0123';
+                m.appendChild(el); const x = el.getBoundingClientRect().width; el.remove(); return x; };
+            return Math.abs(wide('400') - wide('600'));
+        });
+        check(boldCost < 0.01, 'bold costs no width — the caret stays on the text', `${boldCost}px`);
+
+        // Two walkers read the same text: classify() paints the mirror,
+        // parseWalk() builds the stars. They have drifted apart twice (August:
+        // the parser never closed { }; September: the classifier never closed
+        // }}), and both times a human had to notice something looked odd. So:
+        // 4000 seeded bracket soups, and they must agree — is anything still
+        // open, which ring is innermost, and how deep.
+        const walkersDisagree = await page.evaluate(() => {
+            let seed = 0xA51ADE;
+            const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+                let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+            const TOK = ['{{', '}}', '{', '}', '[', ']', '(', ')', ':', '!', '|', '^', '*', '#', '%^&',
+                ' ', 'a', 'word', ' two words ', '\n', 'vvPINvv', '7'];
+            const bad = [];
+            for (let k = 0; k < 4000; k++) {
+                let t = '';
+                for (let j = 1 + Math.floor(rnd() * 9); j > 0; j--) t += TOK[Math.floor(rnd() * TOK.length)];
+                const threads = parseWalk(t).threads;
+                const segs = classify(t + ' zz'), tail = segs[segs.length - 1];
+                const ring = threads.length ? threads[threads.length - 1].ring : null;
+                if (tail.ring !== ring || tail.depth !== threads.length || !tail.text.endsWith('zz'))
+                    bad.push(`${JSON.stringify(t)} parser ${ring}/${threads.length} vs mirror ${tail.ring}/${tail.depth}`);
+            }
+            return bad;
+        });
+        check(walkersDisagree.length === 0, 'classifier and parser agree on 4000 random texts — open, ring, and depth',
+            `${walkersDisagree.length} disagree, e.g. ${walkersDisagree.slice(0, 3).join(' ; ')}`);
+
         // The pills say "Intent 3". That is a claim about nodes, so it must
         // agree with the parser — and with zeusc, which always counted nodes.
         const pillsVsNodes = async text => {

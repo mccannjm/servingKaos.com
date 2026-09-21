@@ -558,8 +558,8 @@ function classify(text) {
             const top = stack[stack.length - 1], cl = top.close.length;
             if (cl > 1 && top.close !== top.open && i + cl <= count
                 && chars.slice(i, i + cl).join('') === top.close) {
-                stack.pop();
-                for (let j = i; j < i + cl; j++) { charRing[j] = top.ring; charDepth[j] = stack.length; }
+                const own = stack.length; stack.pop();
+                for (let j = i; j < i + cl; j++) { charRing[j] = top.ring; charDepth[j] = own; }
                 i += cl; continue;
             }
         }
@@ -568,8 +568,8 @@ function classify(text) {
             const ol = b.open.length;
             if (i + ol <= count && chars.slice(i, i + ol).join('') === b.open) {
                 if (stack.length > 0 && stack[stack.length - 1].close === b.open) {
-                    stack.pop();
-                    for (let j = i; j < i + ol; j++) { charRing[j] = b.ring; charDepth[j] = stack.length; }
+                    const own = stack.length; stack.pop();
+                    for (let j = i; j < i + ol; j++) { charRing[j] = b.ring; charDepth[j] = own; }
                 } else {
                     stack.push(b);
                     for (let j = i; j < i + ol; j++) { charRing[j] = b.ring; charDepth[j] = stack.length; }
@@ -580,7 +580,8 @@ function classify(text) {
         if (matched) continue;
         const ch = chars[i];
         if (stack.length > 0 && stack[stack.length - 1].close === ch && stack[stack.length - 1].close.length === 1) {
-            const top = stack.pop(); charRing[i] = top.ring; charDepth[i] = stack.length; i++; continue;
+            const own = stack.length, top = stack.pop();
+            charRing[i] = top.ring; charDepth[i] = own; i++; continue;
         }
         if (!PURE_CLOSERS.has(ch)) {
             const b = SINGLE_CHAR.find(b => b.open === ch);
@@ -589,10 +590,16 @@ function classify(text) {
         if (stack.length > 0) { charRing[i] = stack[stack.length - 1].ring; charDepth[i] = stack.length; }
         i++;
     }
+    // A run is one ring AT one depth. Merging on ring alone stamped a run with
+    // its first character's depth and lost every change after it — so nesting
+    // only showed (the mirror bolds depth > 1) when the inner ring differed:
+    // {real [gap]} yes, [thread (aside)] no. And a closer used to take the
+    // stack height AFTER its pop, so { sat at 1 and its own } at 0. A closer
+    // belongs to the bracket it closes; it now takes the height before.
     const segments = [];
     let sr = charRing[0], st = chars[0], sd = charDepth[0];
     for (let j = 1; j < count; j++) {
-        if (charRing[j] === sr) st += chars[j];
+        if (charRing[j] === sr && charDepth[j] === sd) st += chars[j];
         else { segments.push({ text: st, ring: sr, depth: sd }); sr = charRing[j]; st = chars[j]; sd = charDepth[j]; }
     }
     segments.push({ text: st, ring: sr, depth: sd });
