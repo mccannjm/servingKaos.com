@@ -45,7 +45,8 @@ Then, in a real browser:
 - every page loads with zero console errors, at desktop and at 390px with
   no sideways scroll, and still arrives under reduced motion
 - the Ariadne kernel: classification, zeusc scores (hand-checked against
-  the Swift math), the molt seed, and the seed round-trip
+  the Swift math), the molt seed, and the seed round-trip — by paste and
+  by link, including a hostile link that must stay inert text
 - the Nova door: wake-fold, the convergence starburst, settle, paste→fold,
   the paste-surge tornado (×3 fast — works from file:// too), its decay
   back through fold, and the two-tab fellowship tornado
@@ -53,6 +54,25 @@ Then, in a real browser:
 It drives your installed Chrome/Chromium/Edge — no browser download. If
 yours isn't found automatically, point at it: `CHROME_PATH=/path/to/chrome npm test`.
 Screenshots land in `test/shots/` for the eyeball pass.
+
+## Seed links
+
+Ariadne wakes from a seed in the URL fragment:
+
+```
+ariadne.html#seed=<encodeURIComponent(bracket notation)>
+```
+
+The molt dialog's **copy link** builds one. Fellowship over BroadcastChannel only
+reaches tabs on the same machine; a seed link reaches anyone. It rides the
+fragment on purpose — browsers never send what follows `#` to a server, so "no
+server, no account, no tracking" still holds. A linked seed lands as plain text
+(the mirror only ever writes `textContent`; the gate feeds it a hostile one) and
+enters Nova as external arrivals, the same as a paste.
+
+Any page can hand the instrument its own words this way. `rings.html` does: its
+closing button opens Ariadne on the page's own argument, every line verbatim,
+and zeusc scores it *clarity, 3:3 — "what's wanted matches what IS."*
 
 ## Share cards
 

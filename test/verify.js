@@ -10,7 +10,8 @@
 //   2. every page loads over http with zero console errors
 //   3. the Ariadne kernel: classification, zeusc scores, the molt seed,
 //      the seed round-trip, the one-surface editor (transparent-ink
-//      textarea over the mirror), zim⁰ suggestions, and the sigils
+//      textarea over the mirror), zim⁰ suggestions, the sigils, and seed
+//      links — a seed in the URL fragment wakes, a hostile one stays text
 //   4. the Nova door: wake-fold, convergence starburst, settle, paste→fold,
 //      the paste-surge tornado, its decay back through fold, and the
 //      two-tab fellowship tornado
@@ -330,6 +331,62 @@ async function main() {
         check(sigilSeed.includes('beacon') && sigilSeed.includes('.-'), 'pins ride the morse beacon');
         await page.click('#moltClose');
         check(pageErrors.length === 0, 'no page errors through editor/zim⁰/sigils', pageErrors.join(' | '));
+
+        // ── 3b′. Seed links: a seed can arrive in the URL fragment ──
+        console.log('seed links:');
+        pageErrors.length = 0;
+        const LINKED = '*ship it* {it is late}\n[what did we forget?]';
+        await page.goto(`${base}/index.html`); // leave first: a hash-only change doesn't reboot the page
+        await page.goto(`${base}/ariadne.html#seed=${encodeURIComponent(LINKED)}`);
+        await page.waitForTimeout(700);
+        check(await page.$eval('#input', el => el.value) === LINKED, 'a linked seed lands in the editor, newlines and all');
+        const linkedRings = await page.evaluate(() => [...new Set(currentNodes.map(n => n.ring))].sort().join(','));
+        check(linkedRings === 'gap,intent,reality', 'and wakes as a constellation', linkedRings);
+        const arrived = await page.evaluate(() => currentNodes.length > 0 && currentNodes.every(n => novaExternalIDs.has(n.id)));
+        check(arrived, 'Nova greets linked nodes as arrivals — external, like a paste');
+
+        // The one place a stranger's URL feeds the page. It must stay text.
+        const HOSTILE = '<img src=x onerror="window.__pwned=1"><script>window.__pwned=1</' + 'script>{{still a seed}}';
+        await page.goto(`${base}/index.html`);
+        await page.goto(`${base}/ariadne.html#seed=${encodeURIComponent(HOSTILE)}`);
+        await page.waitForTimeout(700);
+        const inert = await page.evaluate(() => ({
+            pwned: window.__pwned, imgs: document.querySelectorAll('#mirror img, #mirror script').length,
+            kept: document.getElementById('input').value.includes('onerror') }));
+        check(inert.pwned === undefined && inert.imgs === 0 && inert.kept,
+            'a hostile seed is just text — nothing runs, nothing is built', JSON.stringify(inert));
+
+        await page.goto(`${base}/index.html`);
+        await page.goto(`${base}/ariadne.html#seed=%E0%A4`);
+        await page.waitForTimeout(700);
+        const fellBack = (await page.locator('#temperWord').textContent()).trim();
+        check(fellBack === 'frolic', 'a torn seed is ignored — the default wakes instead', fellBack);
+
+        // Molt → link → a fresh Ariadne: the round trip, by URL this time.
+        await page.goto(`${base}/ariadne.html`);
+        await page.waitForTimeout(700);
+        await page.click('#moltBtn');
+        await page.click('#moltLink');
+        const moltLink = await page.$eval('#moltLink', el => el.dataset.link || '');
+        await page.click('#moltClose');
+        await page.goto(`${base}/index.html`);
+        await page.goto(moltLink);
+        await page.waitForTimeout(700);
+        const linkPills = await page.locator('#ringPills .ring-pill').count();
+        check(moltLink.includes('#seed=') && linkPills === 6, 'molt → copy link → open it: all six rings return', `${linkPills} rings`);
+
+        // The thesis page opens itself in the instrument.
+        await page.goto(`${base}/rings.html`);
+        await page.waitForTimeout(400);
+        await page.evaluate(() => document.querySelector('a[href^="ariadne.html#seed="]').click());
+        await page.waitForTimeout(900);
+        const thesis = await page.$eval('#input', el => el.value);
+        const verdict = (await page.locator('#temperWord').textContent()).trim();
+        const errorsInThesis = await page.locator('.sev-error, .sev-warning').count();
+        check(thesis.includes('{{All men are created equal}}') && thesis.includes("shapes don't"),
+            'rings.html hands the instrument its own argument');
+        check(verdict === 'clarity' && errorsInThesis === 0, 'and the thesis type-checks: clarity, zeusc clean', `${verdict}, ${errorsInThesis} problems`);
+        check(pageErrors.length === 0, 'no page errors through the seed-link suite', pageErrors.join(' | '));
 
         // ── 3c. The garage and the volume ──
         console.log('the garage:');

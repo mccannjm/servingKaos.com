@@ -482,7 +482,8 @@ vvARIADNEvv</textarea>
         </header>
         <pre id="moltText"></pre>
         <footer>
-            <span>the seed is bracket notation. paste it into any Ariadne — or any text field on earth — and it wakes.</span>
+            <span>the seed is bracket notation. paste it into any Ariadne — or any text field on earth — and it wakes. or send it as a link.</span>
+            <button class="action-btn molt" id="moltLink" aria-label="Copy a link that opens Ariadne with this seed">copy link</button>
             <button class="action-btn molt" id="moltCopy" aria-label="Copy seed to clipboard">copy seed</button>
         </footer>
     </div>
@@ -1669,6 +1670,31 @@ document.getElementById('moltCopy').addEventListener('click', async () => {
     } catch { /* clipboard unavailable — the text is selectable */ }
 });
 
+// ── Seed links ──
+// A seed can travel as a link: ariadne.html#seed=<the seed>. Fellowship over
+// BroadcastChannel only reaches tabs on this machine; this reaches anyone.
+// It rides the fragment on purpose — a browser never sends what follows the #
+// to any server, so "no server, no account, no tracking" still holds.
+const SEED_LINK_MAX = 8000; // past this, chat apps start cutting links short
+function seedLink(seed) {
+    return location.href.split('#')[0] + '#seed=' + encodeURIComponent(seed);
+}
+function readSeedFromHash() {
+    const m = location.hash.match(/^#seed=([\s\S]*)$/);
+    if (!m) return null;
+    try { return decodeURIComponent(m[1]).slice(0, SEED_LINK_MAX); }
+    catch { return null; } // a torn escape — wake with the default seed instead
+}
+document.getElementById('moltLink').addEventListener('click', async () => {
+    const btn = document.getElementById('moltLink');
+    const link = seedLink(document.getElementById('moltText').textContent);
+    const say = word => { btn.textContent = word; setTimeout(() => btn.textContent = 'copy link', 1800); };
+    if (link.length > SEED_LINK_MAX) { say('too long — copy the seed'); return; }
+    btn.dataset.link = link; // readable even where the clipboard isn't
+    try { await navigator.clipboard.writeText(link); say('copied'); }
+    catch { say('clipboard unavailable'); }
+});
+
 // Background stars (subtle, behind the whole instrument)
 function drawBackgroundStars(t) {
     const sc = document.getElementById('star-canvas');
@@ -1696,6 +1722,16 @@ initStars();
 resizeCanvas();
 drawBackgroundStars(0);
 window.addEventListener('resize', () => { resizeCanvas(); drawBackgroundStars(0); });
+
+// A seed that arrived by link replaces the pre-seeded text. It goes in as a
+// textarea value — plain text; the mirror only ever writes textContent. And it
+// is external data, exactly as a paste is: arm the same snapshot the paste
+// handler arms, so Nova greets these nodes as arrivals, top-funnel material.
+const linkedSeed = readSeedFromHash();
+if (linkedSeed !== null && linkedSeed.trim()) {
+    document.getElementById('input').value = linkedSeed;
+    novaPasteSnapshot = new Set();
+}
 
 // Pre-seeded text: classify immediately so the rings appear before the first keystroke.
 lastInputTime = performance.now();
