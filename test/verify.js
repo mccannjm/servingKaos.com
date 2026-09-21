@@ -282,6 +282,53 @@ async function main() {
         check(rtPills.length === 6, 'the seed survives the paste — all six rings return', rtPills.join(', '));
         check(pageErrors.length === 0, 'no page errors through the kernel suite', pageErrors.join(' | '));
 
+        // ── 3a′. The classifier closes what it opens, and the pills count nodes ──
+        console.log('rings, counted:');
+        // }} is a two-character closer. classify() only ever popped closers of
+        // length one, so a {{question}} left intent open for the rest of the
+        // document — every bare word after it went gold. (The Swift original
+        // has the same shape; this port was faithful to the flaw.)
+        const after = await page.evaluate(() =>
+            classify('{{why}} then plain words').filter(s => /plain/.test(s.text)).map(s => s.ring));
+        check(after.length === 1 && after[0] === null,
+            'text after a closed {{ }} is back at root, not still intent', JSON.stringify(after));
+        const nestedEnds = await page.evaluate(() => {
+            const segs = classify('{{outer {{inner}} outer}} free');
+            return segs[segs.length - 1];
+        });
+        check(nestedEnds.ring === null && nestedEnds.text.trim() === 'free',
+            'nested {{ {{ }} }} unwinds all the way out', JSON.stringify(nestedEnds));
+        const mixed = await page.evaluate(() =>
+            classify('{{a {b}}} tail').map(s => `${s.ring}:${s.text}`).join('|'));
+        check(mixed === 'intent:{{a |reality:{b}|intent:}}|null: tail',
+            '{ } closing inside {{ }} — each closer finds its own opener', mixed);
+
+        // The pills say "Intent 3". That is a claim about nodes, so it must
+        // agree with the parser — and with zeusc, which always counted nodes.
+        const pillsVsNodes = async text => {
+            await page.fill('#input', text);
+            await page.waitForTimeout(350);
+            return page.evaluate(() => {
+                const nodes = {};
+                for (const n of currentNodes) nodes[RINGS[n.ring].name] = (nodes[RINGS[n.ring].name] || 0) + 1;
+                const pills = {};
+                for (const el of document.querySelectorAll('#ringPills .ring-pill')) {
+                    const m = el.textContent.match(/^(.*) (\d+)$/); pills[m[1]] = Number(m[2]);
+                }
+                return { pills, nodes, same: JSON.stringify(Object.entries(pills).sort()) === JSON.stringify(Object.entries(nodes).sort()) };
+            });
+        };
+        for (const [label, text] of [
+            ['the default seed', await page.$eval('#input', el => el.defaultValue)],
+            ['three questions on one line', '{{a}} {{b}} {{c}}'],
+            ['neighbours with no space between', '{a}{b}{c} [d][e]'],
+            ['one node split by a nested one', '{before [inside] after}'],
+            ['a node said twice is one node, heavier', '*ship it* and again *ship it*'],
+        ]) {
+            const r = await pillsVsNodes(text);
+            check(r.same, `pills match the parser — ${label}`, `pills ${JSON.stringify(r.pills)} vs nodes ${JSON.stringify(r.nodes)}`);
+        }
+
         // ── 3b. One surface, zim⁰, sigils ──
         console.log('editor surface:');
         pageErrors.length = 0;

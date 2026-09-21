@@ -548,6 +548,21 @@ function classify(text) {
     const stack = []; let i = 0;
     while (i < count) {
         if (charRing[i] === 'pin') { i++; continue; }
+        // Does this position close the innermost bracket with a closer longer
+        // than one character? Nothing below ever asked: the multi-char loop only
+        // matches openers, and the single-char closer insists on length one. So
+        // }} closed nothing, a {{question}} left intent open to the end of the
+        // document, and every bare word after it went gold. Toggles (%^& closes
+        // itself) already work through the opener loop and are left to it.
+        if (stack.length > 0) {
+            const top = stack[stack.length - 1], cl = top.close.length;
+            if (cl > 1 && top.close !== top.open && i + cl <= count
+                && chars.slice(i, i + cl).join('') === top.close) {
+                stack.pop();
+                for (let j = i; j < i + cl; j++) { charRing[j] = top.ring; charDepth[j] = stack.length; }
+                i += cl; continue;
+            }
+        }
         let matched = false;
         for (const b of MULTI_CHAR) {
             const ol = b.open.length;
@@ -591,9 +606,13 @@ function classify(text) {
 //    Resurrection note: the March 2026 port only ever closed TOGGLE
 //    brackets here (close === open, like * * and ^ ^) — { } [ ] ( )
 //    {{ }} never closed, so their nodes never existed and closed
-//    threads read as open. classify() above was right all along,
-//    which is why the mirror hid it. Fixed August 8: the walk now
-//    checks the stack top's closer first, like the Swift parser. ──
+//    threads read as open. Fixed August 8: the walk now checks the
+//    stack top's closer first, like the Swift parser.
+//
+//    That note once ended "classify() above was right all along."
+//    Nearly: it closed { } [ ] ( ) but never }} — the mirror-image
+//    of this bug, for two-character closers only. Fixed September
+//    20, the same way: ask the stack top first. ──
 function fnv1a(str) {
     let h = 0x811c9dc5;
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
@@ -1326,9 +1345,15 @@ function syncMirrorScroll() {
     mirror.scrollLeft = input.scrollLeft;
 }
 
-function updateStatus(segments, text) {
+function updateStatus(text) {
+    // "Intent 3" is a claim about nodes, so it is counted from nodes — the same
+    // walk zeusc reads, the same stars the canvas draws. It used to count the
+    // mirror's colour runs, which are not nodes: neighbours merge ({a}{b} was 1),
+    // nesting splits ({a [b] c} was 2), a node said twice was 2. This walk was
+    // already being made here for the open threads; now both halves are used.
+    const walk = parseWalk(text);
     const counts = {};
-    for (const s of segments) if (s.ring) counts[s.ring] = (counts[s.ring] || 0) + 1;
+    for (const n of walk.nodes) counts[n.ring] = (counts[n.ring] || 0) + 1;
     const pills = document.getElementById('ringPills');
     pills.innerHTML = '';
     for (const [ring, info] of Object.entries(RINGS)) {
@@ -1342,7 +1367,7 @@ function updateStatus(segments, text) {
             pills.appendChild(pill);
         }
     }
-    const threads = openThreads(text);
+    const threads = walk.threads;
     document.getElementById('openThreadsLabel').textContent =
         threads.length > 0 ? `${threads.length} open thread${threads.length > 1 ? 's' : ''}` : '';
 }
@@ -1582,7 +1607,7 @@ function onInput() {
     const text = input.value;
     const segments = classify(text);
     renderMirror(segments);
-    updateStatus(segments, text);
+    updateStatus(text);
     clearTimeout(parseTimer);
     parseTimer = setTimeout(() => {
         const walk = parseWalk(text);
